@@ -1,0 +1,13 @@
+nohup: ignoring input
+Server running in development mode on port 5000
+MongoDB Connected: ac-h41nixo-shard-00-01.bgdhjyu.mongodb.net
+[0mGET /api/menu [32m200[0m 124.229 ms - 10110[0m
+[0mGET /api/users [32m200[0m 96.579 ms - 3106[0m
+[0mOPTIONS /api/auth/me [32m204[0m 4.663 ms - 0[0m
+[0mOPTIONS /api/auth/me [32m204[0m 0.757 ms - 0[0m
+[0mGET /api/auth/me [33m404[0m 54.456 ms - 1007[0m
+[0mGET /api/auth/me [33m404[0m 7.113 ms - 1007[0m
+[0mOPTIONS /api/auth/login [32m204[0m 0.417 ms - 0[0m
+[0mPOST /api/auth/login [33m404[0m 98.857 ms - 1044[0m
+[0mOPTIONS /api/auth/register [32m204[0m 0.438 ms - 0[0m
+[0mPOST /api/auth/register [33m404[0m 5.850 ms - 1050[0m

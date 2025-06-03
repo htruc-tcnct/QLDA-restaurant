@@ -1,0 +1,250 @@
+[
+  {
+    "name": "Bào Ngư Sốt Dầu Hào",
+    "description": "Bào ngư tươi ngon, thịt dai giòn, chế biến cùng sốt dầu hào thượng hạng.",
+    "price": 950000,
+    "category": "Hải Sản Cao Cấp",
+    "imageUrls": [
+      "/images/menu/Bào Ngư Sốt Dầu Hào/pixabay_1255020_06.jpg",
+      "/images/menu/Bào Ngư Sốt Dầu Hào/pixabay_2495964_02.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["hải sản", "bào ngư", "cao cấp"],
+    "stockCount": 20
+  },
+  {
+    "name": "Tôm Hùm Nướng Bơ Tỏi",
+    "description": "Tôm hùm tươi ngon, nướng với bơ tỏi đậm đà, giữ trọn hương vị biển cả.",
+    "price": 1200000,
+    "category": "Hải Sản Cao Cấp",
+    "imageUrls": [
+      "/images/menu/Tôm Hùm Nướng Bơ Tỏi/pixabay_2539843_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["hải sản", "tôm hùm", "nướng", "cao cấp"],
+    "stockCount": 15
+  },
+  {
+    "name": "Chân Cua Hoàng Đế Hấp",
+    "description": "Chân cua hoàng đế Alaska hấp với bia, thịt cua chắc ngọt, đậm đà.",
+    "price": 1300000,
+    "category": "Hải Sản Cao Cấp",
+    "imageUrls": [
+      "/images/menu/Chân Cua Hoàng Đế Hấp/pixabay_3823462_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["hải sản", "cua hoàng đế", "hấp", "cao cấp"],
+    "stockCount": 10
+  },
+  {
+    "name": "Cá Tuyết Hấp Gừng Hành",
+    "description": "Cá tuyết tươi hấp với gừng và hành, thịt cá mềm mại, thơm ngọt tự nhiên.",
+    "price": 850000,
+    "category": "Hải Sản",
+    "imageUrls": [
+      "/images/menu/Cá Tuyết Hấp Gừng Hành/pixabay_2139868_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["hải sản", "cá tuyết", "hấp"],
+    "stockCount": 18
+  },
+  {
+    "name": "Bò Wagyu Nướng",
+    "description": "Thăn bò Wagyu A5 nướng đúng mức, thịt mềm mại với vân mỡ tuyệt hảo, tan trong miệng.",
+    "price": 1500000,
+    "category": "Thịt Cao Cấp",
+    "imageUrls": [
+      "/images/menu/Bò Wagyu Nướng/pixabay_3753708_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["bò", "wagyu", "nướng", "cao cấp"],
+    "stockCount": 12
+  },
+  {
+    "name": "Vịt Quay Bắc Kinh",
+    "description": "Vịt quay giòn da, thịt mềm ngọt, ăn kèm bánh bao, dưa chuột và sốt đặc biệt.",
+    "price": 750000,
+    "category": "Món Trung Hoa",
+    "imageUrls": [
+      "/images/menu/Vịt Quay Bắc Kinh/pixabay_3684516_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["vịt", "quay", "trung hoa"],
+    "stockCount": 22
+  },
+  {
+    "name": "Heo Sữa Quay Da Giòn",
+    "description": "Heo sữa quay nguyên con, da giòn rụm, thịt mềm thơm, ăn kèm sốt đặc biệt.",
+    "price": 1800000,
+    "category": "Món Đặc Biệt",
+    "imageUrls": [
+      "/images/menu/Heo Sữa Quay Da Giòn/pixabay_1239755_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["heo sữa", "quay", "đặc biệt"],
+    "stockCount": 5
+  },
+  {
+    "name": "Gỏi Hải Sản Cao Cấp",
+    "description": "Tôm, mực, sò điệp tươi ngon kết hợp với rau thơm, trộn sốt chanh dây đặc biệt.",
+    "price": 450000,
+    "category": "Khai Vị",
+    "imageUrls": [
+      "/images/menu/Gỏi Hải Sản Cao Cấp/pixabay_2826108_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["hải sản", "gỏi", "khai vị"],
+    "stockCount": 25
+  },
+  {
+    "name": "Lẩu Nấm Thiên Nhiên Cao Cấp",
+    "description": "Nước dùng ngọt thanh từ xương ống, kết hợp 10 loại nấm tự nhiên cao cấp.",
+    "price": 650000,
+    "category": "Lẩu",
+    "imageUrls": [
+      "/images/menu/Lẩu Nấm Thiên Nhiên Cao Cấp/pixabay_984302_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["lẩu", "nấm", "chay"],
+    "stockCount": 15
+  },
+  {
+    "name": "Cơm Chiên Tôm Càng Vua",
+    "description": "Cơm chiên với tôm càng vua tươi ngon, hạt cơm tơi xốp, thấm đều hương vị.",
+    "price": 380000,
+    "category": "Cơm & Mì",
+    "imageUrls": [
+      "/images/menu/Cơm Chiên Tôm Càng Vua/pixabay_4894225_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["cơm", "tôm", "chiên"],
+    "stockCount": 30
+  },
+  {
+    "name": "Miến Xào Cua Bể",
+    "description": "Miến xào với thịt cua bể tươi ngon, nấm hương, cà rốt và các loại rau củ.",
+    "price": 320000,
+    "category": "Cơm & Mì",
+    "imageUrls": [
+      "/images/menu/stir-fried_glass_noodles_with_crab/pixabay_3697367_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["miến", "cua", "xào"],
+    "stockCount": 28
+  },
+  {
+    "name": "Chả Giò Hải Sản Cao Cấp",
+    "description": "Chả giò vỏ giòn rụm, nhân hải sản thơm ngon với tôm, cua, mực và nấm.",
+    "price": 220000,
+    "category": "Khai Vị",
+    "imageUrls": [
+      "/images/menu/Chả Giò Hải Sản Cao Cấp/pixabay_3859554_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["chả giò", "hải sản", "khai vị"],
+    "stockCount": 40
+  },
+  {
+    "name": "Cá Song Hấp Xì Dầu",
+    "description": "Cá song tươi hấp với xì dầu, gừng và hành, thịt cá ngọt, mềm và thơm.",
+    "price": 680000,
+    "category": "Hải Sản",
+    "imageUrls": [
+      "/images/menu/Cá Song Hấp Xì Dầu/pixabay_2097167_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["cá", "hấp", "hải sản"],
+    "stockCount": 15
+  },
+  {
+    "name": "Sườn Cừu Nướng Lá Hương Thảo",
+    "description": "Sườn cừu non nướng với lá hương thảo tươi, thịt mềm, thơm nức mũi.",
+    "price": 780000,
+    "category": "Thịt Cao Cấp",
+    "imageUrls": [
+      "/images/menu/Sườn Cừu Nướng Lá Hương Thảo/pixabay_5356785_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["cừu", "sườn", "nướng"],
+    "stockCount": 18
+  },
+  {
+    "name": "Gan Ngỗng Áp Chảo Sốt Dâu Rừng",
+    "description": "Gan ngỗng béo ngậy áp chảo, ăn kèm sốt dâu rừng chua ngọt và bánh mì nướng.",
+    "price": 650000,
+    "category": "Món Âu",
+    "imageUrls": [
+      "/images/menu/pan-seared_foie_gras_with_berry_sauce/pixabay_4102028_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["gan ngỗng", "foie gras", "món âu"],
+    "stockCount": 10
+  },
+  {
+    "name": "Bồ Câu Quay Da Giòn",
+    "description": "Bồ câu quay vàng giòn, thịt thơm mềm, ăn kèm muối tiêu chanh.",
+    "price": 320000,
+    "category": "Món Trung Hoa",
+    "imageUrls": [
+      "/images/menu/Bồ Câu Quay Da Giòn/pixabay_2094661_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["bồ câu", "quay", "trung hoa"],
+    "stockCount": 20
+  },
+  {
+    "name": "Đĩa Sashimi Cá Hồi Tươi",
+    "description": "Cá hồi Na Uy cắt lát mỏng, tươi ngon, ăn kèm gừng, wasabi và nước tương.",
+    "price": 380000,
+    "category": "Món Nhật",
+    "imageUrls": [
+      "/images/menu/Đĩa Sashimi Cá Hồi Tươi/pixabay_4871097_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": true,
+    "tags": ["sashimi", "cá hồi", "nhật bản"],
+    "stockCount": 25
+  },
+  {
+    "name": "Tôm Càng Xanh Sốt Me",
+    "description": "Tôm càng xanh tươi ngon, sốt me chua ngọt đậm đà, ăn kèm rau thơm.",
+    "price": 450000,
+    "category": "Hải Sản",
+    "imageUrls": [
+      "/images/menu/Tôm Càng Xanh Sốt Me/pixabay_2290740_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["tôm càng", "sốt me", "hải sản"],
+    "stockCount": 20
+  },
+  {
+    "name": "Đĩa Tráng Miệng Việt Cao Cấp",
+    "description": "Tổng hợp các loại chè, bánh và trái cây tươi ngon theo mùa.",
+    "price": 280000,
+    "category": "Tráng Miệng",
+    "imageUrls": [
+      "/images/menu/Đĩa Tráng Miệng Việt Cao Cấp/pixabay_2067507_01.jpg"
+    ],
+    "isAvailable": true,
+    "chefRecommended": false,
+    "tags": ["tráng miệng", "chè", "bánh"],
+    "stockCount": 30
+  }
+] 
