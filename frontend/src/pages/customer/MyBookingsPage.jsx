@@ -1,26 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Badge, Button, Modal, Spinner, Alert } from 'react-bootstrap';
-import { 
-  FaListAlt, 
-  FaTimesCircle, 
-  FaCalendarAlt, 
-  FaClock, 
-  FaUsers, 
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Badge,
+  Button,
+  Modal,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
+import {
+  FaListAlt,
+  FaTimesCircle,
+  FaCalendarAlt,
+  FaClock,
+  FaUsers,
   FaInfoCircle,
   FaCheckCircle,
   FaBan,
   FaClipboardCheck,
-  FaUserSlash
-} from 'react-icons/fa';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import api from '../../services/api';
-import { toast } from 'react-toastify';
+  FaUserSlash,
+} from "react-icons/fa";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import api from "../../services/api";
+import { toast } from "react-toastify";
 
 const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [cancellingBooking, setCancellingBooking] = useState(false);
@@ -28,16 +38,15 @@ const MyBookingsPage = () => {
   useEffect(() => {
     fetchMyBookings();
   }, []);
-
   const fetchMyBookings = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/bookings/my-bookings');
+      const response = await api.get("/api/v1/bookings/my-bookings");
       setBookings(response.data.data.bookings);
-      setError('');
+      setError("");
     } catch (err) {
-      console.error('Error fetching bookings:', err);
-      setError('Không thể tải danh sách đặt bàn. Vui lòng thử lại sau.');
+      console.error("Error fetching bookings:", err);
+      setError("Không thể tải danh sách đặt bàn. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -45,23 +54,29 @@ const MyBookingsPage = () => {
 
   const handleCancelBooking = async () => {
     if (!selectedBooking) return;
-
     try {
       setCancellingBooking(true);
-      await api.put(`/api/bookings/${selectedBooking._id}/cancel-by-customer`);
-      
+      await api.put(
+        `/api/v1/bookings/${selectedBooking._id}/cancel-by-customer`
+      );
+
       // Update local state
-      setBookings(bookings.map(booking => 
-        booking._id === selectedBooking._id 
-          ? { ...booking, status: 'cancelled_by_customer' } 
-          : booking
-      ));
-      
-      toast.success('Đã hủy đặt bàn thành công');
+      setBookings(
+        bookings.map((booking) =>
+          booking._id === selectedBooking._id
+            ? { ...booking, status: "cancelled_by_customer" }
+            : booking
+        )
+      );
+
+      toast.success("Đã hủy đặt bàn thành công");
       setShowCancelModal(false);
     } catch (err) {
-      console.error('Error cancelling booking:', err);
-      toast.error(err.response?.data?.message || 'Không thể hủy đặt bàn. Vui lòng thử lại sau.');
+      console.error("Error cancelling booking:", err);
+      toast.error(
+        err.response?.data?.message ||
+          "Không thể hủy đặt bàn. Vui lòng thử lại sau."
+      );
     } finally {
       setCancellingBooking(false);
     }
@@ -74,18 +89,42 @@ const MyBookingsPage = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'pending_confirmation':
-        return <Badge bg="warning" text="dark"><FaInfoCircle className="me-1" /> Chờ xác nhận</Badge>;
-      case 'confirmed':
-        return <Badge bg="success"><FaCheckCircle className="me-1" /> Đã xác nhận</Badge>;
-      case 'cancelled_by_customer':
-        return <Badge bg="danger"><FaTimesCircle className="me-1" /> Đã hủy bởi khách</Badge>;
-      case 'cancelled_by_restaurant':
-        return <Badge bg="danger"><FaBan className="me-1" /> Đã hủy bởi nhà hàng</Badge>;
-      case 'completed':
-        return <Badge bg="info"><FaClipboardCheck className="me-1" /> Hoàn thành</Badge>;
-      case 'no_show':
-        return <Badge bg="secondary"><FaUserSlash className="me-1" /> Vắng mặt</Badge>;
+      case "pending_confirmation":
+        return (
+          <Badge bg="warning" text="dark">
+            <FaInfoCircle className="me-1" /> Chờ xác nhận
+          </Badge>
+        );
+      case "confirmed":
+        return (
+          <Badge bg="success">
+            <FaCheckCircle className="me-1" /> Đã xác nhận
+          </Badge>
+        );
+      case "cancelled_by_customer":
+        return (
+          <Badge bg="danger">
+            <FaTimesCircle className="me-1" /> Đã hủy bởi khách
+          </Badge>
+        );
+      case "cancelled_by_restaurant":
+        return (
+          <Badge bg="danger">
+            <FaBan className="me-1" /> Đã hủy bởi nhà hàng
+          </Badge>
+        );
+      case "completed":
+        return (
+          <Badge bg="info">
+            <FaClipboardCheck className="me-1" /> Hoàn thành
+          </Badge>
+        );
+      case "no_show":
+        return (
+          <Badge bg="secondary">
+            <FaUserSlash className="me-1" /> Vắng mặt
+          </Badge>
+        );
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -93,22 +132,24 @@ const MyBookingsPage = () => {
 
   const canCancelBooking = (booking) => {
     // Only allow cancellation if status is pending or confirmed
-    if (!['pending_confirmation', 'confirmed'].includes(booking.status)) {
+    if (!["pending_confirmation", "confirmed"].includes(booking.status)) {
       return false;
     }
 
     // Check if booking is at least 2 hours in the future
-    const bookingDate = new Date(`${booking.date.split('T')[0]}T${booking.time}`);
+    const bookingDate = new Date(
+      `${booking.date.split("T")[0]}T${booking.time}`
+    );
     const now = new Date();
     const hoursDifference = (bookingDate - now) / (1000 * 60 * 60);
-    
+
     return hoursDifference >= 2;
   };
 
   const formatBookingDate = (dateString) => {
     try {
       const date = new Date(dateString);
-      return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
+      return format(date, "EEEE, dd/MM/yyyy", { locale: vi });
     } catch (error) {
       return dateString;
     }
@@ -167,7 +208,9 @@ const MyBookingsPage = () => {
                       <div className="d-flex align-items-center mb-2">
                         <FaCalendarAlt className="text-primary me-2" />
                         <strong>Ngày:</strong>
-                        <span className="ms-2">{formatBookingDate(booking.date)}</span>
+                        <span className="ms-2">
+                          {formatBookingDate(booking.date)}
+                        </span>
                       </div>
                       <div className="d-flex align-items-center mb-2">
                         <FaClock className="text-primary me-2" />
@@ -177,7 +220,9 @@ const MyBookingsPage = () => {
                       <div className="d-flex align-items-center">
                         <FaUsers className="text-primary me-2" />
                         <strong>Số khách:</strong>
-                        <span className="ms-2">{booking.numberOfGuests} người</span>
+                        <span className="ms-2">
+                          {booking.numberOfGuests} người
+                        </span>
                       </div>
                     </div>
 
@@ -188,19 +233,24 @@ const MyBookingsPage = () => {
                       </div>
                     )}
 
-                    {booking.preOrderedItems && booking.preOrderedItems.length > 0 && (
-                      <div className="mb-3">
-                        <strong>Món đã đặt trước:</strong>
-                        <ul className="list-unstyled ps-3 mb-0">
-                          {booking.preOrderedItems.map((item, index) => (
-                            <li key={index}>
-                              {item.menuItem.name} x{item.quantity}
-                              {item.notes && <small className="text-muted d-block">{item.notes}</small>}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    {booking.preOrderedItems &&
+                      booking.preOrderedItems.length > 0 && (
+                        <div className="mb-3">
+                          <strong>Món đã đặt trước:</strong>
+                          <ul className="list-unstyled ps-3 mb-0">
+                            {booking.preOrderedItems.map((item, index) => (
+                              <li key={index}>
+                                {item.menuItem.name} x{item.quantity}
+                                {item.notes && (
+                                  <small className="text-muted d-block">
+                                    {item.notes}
+                                  </small>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                   </Card.Body>
                   <Card.Footer>
                     {canCancelBooking(booking) ? (
@@ -214,11 +264,14 @@ const MyBookingsPage = () => {
                       </Button>
                     ) : (
                       <div className="text-center text-muted small">
-                        {['cancelled_by_customer', 'cancelled_by_restaurant'].includes(booking.status)
-                          ? 'Đặt bàn đã bị hủy'
-                          : ['completed', 'no_show'].includes(booking.status)
-                          ? 'Đặt bàn đã hoàn thành'
-                          : 'Không thể hủy (dưới 2 giờ trước giờ đặt)'}
+                        {[
+                          "cancelled_by_customer",
+                          "cancelled_by_restaurant",
+                        ].includes(booking.status)
+                          ? "Đặt bàn đã bị hủy"
+                          : ["completed", "no_show"].includes(booking.status)
+                          ? "Đặt bàn đã hoàn thành"
+                          : "Không thể hủy (dưới 2 giờ trước giờ đặt)"}
                       </div>
                     )}
                   </Card.Footer>
@@ -229,7 +282,11 @@ const MyBookingsPage = () => {
         )}
 
         {/* Cancel Booking Confirmation Modal */}
-        <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)} centered>
+        <Modal
+          show={showCancelModal}
+          onHide={() => setShowCancelModal(false)}
+          centered
+        >
           <Modal.Header closeButton>
             <Modal.Title>Xác nhận hủy đặt bàn</Modal.Title>
           </Modal.Header>
@@ -238,15 +295,27 @@ const MyBookingsPage = () => {
               <>
                 <p>Bạn có chắc chắn muốn hủy đặt bàn này không?</p>
                 <ul className="mb-0">
-                  <li><strong>Ngày:</strong> {formatBookingDate(selectedBooking.date)}</li>
-                  <li><strong>Giờ:</strong> {selectedBooking.time}</li>
-                  <li><strong>Số khách:</strong> {selectedBooking.numberOfGuests} người</li>
+                  <li>
+                    <strong>Ngày:</strong>{" "}
+                    {formatBookingDate(selectedBooking.date)}
+                  </li>
+                  <li>
+                    <strong>Giờ:</strong> {selectedBooking.time}
+                  </li>
+                  <li>
+                    <strong>Số khách:</strong> {selectedBooking.numberOfGuests}{" "}
+                    người
+                  </li>
                 </ul>
               </>
             )}
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCancelModal(false)} disabled={cancellingBooking}>
+            <Button
+              variant="secondary"
+              onClick={() => setShowCancelModal(false)}
+              disabled={cancellingBooking}
+            >
               Đóng
             </Button>
             <Button
@@ -273,4 +342,4 @@ const MyBookingsPage = () => {
   );
 };
 
-export default MyBookingsPage; 
+export default MyBookingsPage;
