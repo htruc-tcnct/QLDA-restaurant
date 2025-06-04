@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const isRestaurantOpenAt = (time) => {
   // For testing purposes, always return true to allow bookings at any time
   return true;
-  
+
   /* Original implementation - commented out for testing
   // Convert time string to hours and minutes
   const [hours, minutes] = time.split(':').map(Number);
@@ -32,6 +32,8 @@ exports.createBooking = catchAsync(async (req, res, next) => {
     numberOfGuests,
     notes,
     preOrderedItems,
+    appliedPromotion,
+    paymentInfo,
   } = req.body;
 
   // Validate required fields
@@ -56,6 +58,16 @@ exports.createBooking = catchAsync(async (req, res, next) => {
     preOrderedItems,
   };
 
+  // Add promotion info if provided
+  if (appliedPromotion) {
+    bookingData.appliedPromotion = appliedPromotion;
+  }
+
+  // Add payment info if provided
+  if (paymentInfo) {
+    bookingData.paymentInfo = paymentInfo;
+  }
+
   if (req.user) {
     bookingData.customer = req.user._id;
   }
@@ -74,10 +86,16 @@ exports.createBooking = catchAsync(async (req, res, next) => {
 exports.getMyBookings = catchAsync(async (req, res, next) => {
   const bookings = await Booking.find({ customer: req.user._id })
     .sort({ date: -1, time: -1 })
-    .populate({
-      path: 'preOrderedItems.menuItem',
-      select: 'name price',
-    });
+    .populate([
+      {
+        path: 'preOrderedItems.menuItem',
+        select: 'name price',
+      },
+      {
+        path: 'appliedPromotion.id',
+        select: 'name code type value',
+      }
+    ]);
 
   res.status(200).json({
     status: 'success',
@@ -103,7 +121,7 @@ exports.getAllBookings = catchAsync(async (req, res, next) => {
     const date = new Date(req.query.date);
     const nextDay = new Date(date);
     nextDay.setDate(nextDay.getDate() + 1);
-    
+
     query.date = {
       $gte: date,
       $lt: nextDay,
@@ -210,7 +228,7 @@ exports.getBooking = catchAsync(async (req, res, next) => {
 
 // Update booking status (for staff/admin)
 exports.updateBookingStatus = catchAsync(async (req, res, next) => {
-  console.log(">>>>>>>>>>>>: ",req.params);
+  console.log(">>>>>>>>>>>>: ", req.params);
   const { status, tableAssigned, assignedStaff } = req.body;
 
   if (!status) {
@@ -224,7 +242,7 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
     if (typeof tableAssigned === 'string' && !mongoose.Types.ObjectId.isValid(tableAssigned)) {
       // Try to find the table by tableNumber
       const table = await Table.findOne({ tableNumber: tableAssigned });
-      
+
       if (table) {
         updateData.tableAssigned = table._id;
       } else {
@@ -234,7 +252,7 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
           name: `Table ${tableAssigned.replace('table', '')}`,
           capacity: 4  // Default capacity
         });
-        
+
         updateData.tableAssigned = newTable._id;
       }
     } else {
@@ -344,38 +362,38 @@ exports.updateBooking = catchAsync(async (req, res, next) => {
   if (notes) updateData.notes = notes;
   if (status) updateData.status = status;
   if (restaurantNotes) updateData.restaurantNotes = restaurantNotes;
-  
+
   // Check for time conflicts if table, date or time is being updated
   if (tableId && (date || time || !currentBooking.tableAssigned || tableId !== currentBooking.tableAssigned.toString())) {
     console.log('Checking for time conflicts with table', tableId);
-    
+
     // Verify that the table exists
     const table = await Table.findById(tableId);
     if (!table) {
       return next(new AppError('Không tìm thấy bàn với ID này', 404));
     }
-    
+
     // Format the dateTime for conflict checking
     const bookingDate = date || (currentBooking.date ? currentBooking.date.toISOString().split('T')[0] : null);
     const bookingTime = time || currentBooking.time;
-    
+
     if (!bookingDate || !bookingTime) {
       return next(new AppError('Cần cung cấp ngày và giờ đặt bàn', 400));
     }
-    
+
     const bookingDateTime = `${bookingDate}T${bookingTime}:00`;
     console.log(`Checking conflicts for booking at ${bookingDateTime}`);
-    
+
     // Check if there are any conflicts with other bookings
     const isTableBookedAt = async (tableId, dateTime) => {
       const date = new Date(dateTime);
       const bookingDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
-      
+
       // Get the time in HH:MM format
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
       const bookingTime = `${hours}:${minutes}`;
-      
+
       // Check if there are any bookings for this table around the specified time
       // We consider a booking valid if it's within 45 minutes before or after
       const bookings = await Booking.find({
@@ -384,19 +402,19 @@ exports.updateBooking = catchAsync(async (req, res, next) => {
         status: { $in: ['pending', 'confirmed'] },
         _id: { $ne: req.params.id } // Exclude the current booking
       });
-      
+
       // Check if any booking time is within 45 minutes of the requested time
       for (const booking of bookings) {
         const [bookingHour, bookingMinute] = booking.time.split(':').map(Number);
         const bookingTimeInMinutes = bookingHour * 60 + bookingMinute;
-        
+
         const [requestHour, requestMinute] = bookingTime.split(':').map(Number);
         const requestTimeInMinutes = requestHour * 60 + requestMinute;
-        
+
         const timeDifferenceInMinutes = Math.abs(bookingTimeInMinutes - requestTimeInMinutes);
-        
+
         console.log(`Booking time: ${booking.time}, Request time: ${bookingTime}, Difference: ${timeDifferenceInMinutes} minutes`);
-        
+
         // If the booking is within 45 minutes, consider the table booked
         if (timeDifferenceInMinutes <= 45) {
           return {
@@ -406,23 +424,23 @@ exports.updateBooking = catchAsync(async (req, res, next) => {
           };
         }
       }
-      
+
       return { isBooked: false };
     };
-    
+
     const bookingStatus = await isTableBookedAt(tableId, bookingDateTime);
-    
+
     if (bookingStatus.isBooked) {
       return next(new AppError(
         `Bàn này đã được đặt trong khoảng thời gian ${bookingStatus.timeDifference} phút so với thời gian bạn chọn. Vui lòng chọn bàn khác hoặc thay đổi thời gian.`,
         400
       ));
     }
-    
+
     // If no conflicts, update the table assignment
     updateData.tableAssigned = tableId;
   }
-  
+
   if (assignedStaff) updateData.assignedStaff = assignedStaff;
   if (preOrderedItems) updateData.preOrderedItems = preOrderedItems;
 

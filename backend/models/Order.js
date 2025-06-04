@@ -95,6 +95,18 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    appliedPromotion: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Promotion'
+    },
+    promotionCode: {
+      type: String,
+      trim: true
+    },
+    promotionDiscountAmount: {
+      type: Number,
+      default: 0
+    },
     taxRate: {
       type: Number,
       default: 0
@@ -145,7 +157,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to validate and calculate totals
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', function (next) {
   try {
     // Validate order type and table
     if (this.orderType === 'dine-in' && !this.table) {
@@ -160,18 +172,19 @@ orderSchema.pre('save', function(next) {
       );
     }
 
-    // Apply discount
+    // Apply manual discount
     if (this.discountPercentage > 0) {
       this.discountAmount = this.subTotal * (this.discountPercentage / 100);
     }
 
-    // Calculate tax amount
+    // Calculate tax amount (on subtotal minus manual discount and promotion discount)
+    const taxableAmount = this.subTotal - this.discountAmount - this.promotionDiscountAmount;
     if (this.taxRate > 0) {
-      this.taxAmount = (this.subTotal - this.discountAmount) * this.taxRate;
+      this.taxAmount = Math.max(0, taxableAmount * this.taxRate);
     }
 
     // Calculate total amount
-    this.totalAmount = this.subTotal - this.discountAmount + this.taxAmount;
+    this.totalAmount = Math.max(0, this.subTotal - this.discountAmount - this.promotionDiscountAmount + this.taxAmount);
 
     next();
   } catch (error) {
@@ -180,12 +193,12 @@ orderSchema.pre('save', function(next) {
 });
 
 // Create virtual to get total number of items
-orderSchema.virtual('itemCount').get(function() {
+orderSchema.virtual('itemCount').get(function () {
   return this.items.reduce((total, item) => total + item.quantity, 0);
 });
 
 // Method to add item to order
-orderSchema.methods.addItem = async function(itemData) {
+orderSchema.methods.addItem = async function (itemData) {
   // Check if item already exists
   const existingItemIndex = this.items.findIndex(
     item => item.menuItem.toString() === itemData.menuItem.toString()
@@ -204,7 +217,7 @@ orderSchema.methods.addItem = async function(itemData) {
 };
 
 // Method to update order status and related items status
-orderSchema.methods.updateStatus = async function(newStatus, itemsStatus) {
+orderSchema.methods.updateStatus = async function (newStatus, itemsStatus) {
   this.orderStatus = newStatus;
 
   // If itemsStatus is provided, update status for those items
@@ -218,6 +231,26 @@ orderSchema.methods.updateStatus = async function(newStatus, itemsStatus) {
       }
     });
   }
+
+  return this.save();
+};
+
+// Method to apply promotion to order
+orderSchema.methods.applyPromotion = async function (promotion) {
+  // Validate promotion for the order amount
+  const validationResult = promotion.isValidForAmount(this.subTotal);
+
+  if (!validationResult.valid) {
+    throw new Error(validationResult.message);
+  }
+
+  // Calculate discount amount
+  const discountAmount = promotion.calculateDiscount(this.subTotal);
+
+  // Apply promotion to order
+  this.appliedPromotion = promotion._id;
+  this.promotionCode = promotion.code;
+  this.promotionDiscountAmount = discountAmount;
 
   return this.save();
 };

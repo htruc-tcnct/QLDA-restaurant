@@ -62,9 +62,45 @@ const bookingSchema = new mongoose.Schema(
           type: Number,
           default: 1,
         },
-        specialInstructions: String,
+        notes: String,
       },
     ],
+    appliedPromotion: {
+      id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Promotion'
+      },
+      code: String,
+      name: String,
+      discountAmount: {
+        type: Number,
+        default: 0
+      }
+    },
+    paymentInfo: {
+      subtotal: {
+        type: Number,
+        default: 0
+      },
+      discountAmount: {
+        type: Number,
+        default: 0
+      },
+      totalAmount: {
+        type: Number,
+        default: 0
+      },
+      paymentMethod: {
+        type: String,
+        enum: ['cash', 'card', 'transfer', 'ewallet'],
+        default: 'cash'
+      },
+      paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'refunded'],
+        default: 'pending'
+      }
+    }
   },
   {
     timestamps: true,

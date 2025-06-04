@@ -19,18 +19,18 @@ const PromotionManagementPage = () => {
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State for pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   // State for filters
   const [filters, setFilters] = useState({
     isActive: '',
     type: '',
-    active: '' // 'true' for currently active dates, 'false' for inactive
+    dateStatus: '' // 'current' for currently valid dates, 'expired' for expired, 'upcoming' for upcoming
   });
-  
+
   // State for promotion form modal
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState('Tạo khuyến mãi mới');
@@ -48,25 +48,36 @@ const PromotionManagementPage = () => {
     isActive: true
   });
   const [currentPromotionId, setCurrentPromotionId] = useState(null);
-  
+
   // State for delete confirmation modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [promotionToDelete, setPromotionToDelete] = useState(null);
-  
+
   // Load promotions on component mount and when filters or page changes
   useEffect(() => {
     fetchPromotions();
   }, [page, filters]);
-  
+
   // Function to fetch promotions with current filters and pagination
   const fetchPromotions = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await getPromotions(page, 10, filters);
+      // Filter out empty values from filters before sending to API
+      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+
+      console.log('Current filters:', filters);
+      console.log('Clean filters sent to API:', cleanFilters);
+
+      const response = await getPromotions(page, 10, cleanFilters);
       console.log('Promotion response:', response); // Debug log
-      
+
       if (response && response.data && Array.isArray(response.data.promotions)) {
         setPromotions(response.data.promotions);
         setTotalPages(response.data.totalPages || 1);
@@ -83,7 +94,7 @@ const PromotionManagementPage = () => {
       setLoading(false);
     }
   };
-  
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -92,7 +103,7 @@ const PromotionManagementPage = () => {
       [name]: type === 'checkbox' ? checked : value
     });
   };
-  
+
   // Handle date changes
   const handleDateChange = (date, fieldName) => {
     setFormData({
@@ -100,34 +111,34 @@ const PromotionManagementPage = () => {
       [fieldName]: date
     });
   };
-  
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Form validation
     if (!formData.name) {
       toast.error('Vui lòng nhập tên khuyến mãi');
       return;
     }
-    
+
     if (!formData.value || formData.value <= 0) {
       toast.error('Vui lòng nhập giá trị khuyến mãi hợp lệ');
       return;
     }
-    
+
     if (formData.endDate < formData.startDate) {
       toast.error('Ngày kết thúc phải sau ngày bắt đầu');
       return;
     }
-    
+
     // Format data for API
     const promotionData = {
       ...formData,
       startDate: format(formData.startDate, 'yyyy-MM-dd'),
       endDate: format(formData.endDate, 'yyyy-MM-dd')
     };
-    
+
     try {
       if (currentPromotionId) {
         // Update existing promotion
@@ -138,7 +149,7 @@ const PromotionManagementPage = () => {
         await createPromotion(promotionData);
         toast.success('Tạo khuyến mãi mới thành công');
       }
-      
+
       // Close modal and refresh list
       handleCloseModal();
       fetchPromotions();
@@ -147,7 +158,7 @@ const PromotionManagementPage = () => {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi lưu khuyến mãi');
     }
   };
-  
+
   // Open modal for creating a new promotion
   const handleOpenCreateModal = () => {
     setCurrentPromotionId(null);
@@ -167,7 +178,7 @@ const PromotionManagementPage = () => {
     });
     setShowModal(true);
   };
-  
+
   // Open modal for editing an existing promotion
   const handleOpenEditModal = (promotion) => {
     setCurrentPromotionId(promotion._id);
@@ -187,29 +198,29 @@ const PromotionManagementPage = () => {
     });
     setShowModal(true);
   };
-  
+
   // Close modal and reset form
   const handleCloseModal = () => {
     setShowModal(false);
     setCurrentPromotionId(null);
   };
-  
+
   // Open delete confirmation modal
   const handleOpenDeleteModal = (promotion) => {
     setPromotionToDelete(promotion);
     setShowDeleteModal(true);
   };
-  
+
   // Close delete confirmation modal
   const handleCloseDeleteModal = () => {
     setShowDeleteModal(false);
     setPromotionToDelete(null);
   };
-  
+
   // Handle promotion deletion
   const handleDeletePromotion = async () => {
     if (!promotionToDelete) return;
-    
+
     try {
       await deletePromotion(promotionToDelete._id);
       toast.success('Xóa khuyến mãi thành công');
@@ -220,7 +231,7 @@ const PromotionManagementPage = () => {
       toast.error('Có lỗi xảy ra khi xóa khuyến mãi');
     }
   };
-  
+
   // Handle promotion status toggle
   const handleToggleStatus = async (id) => {
     try {
@@ -232,23 +243,29 @@ const PromotionManagementPage = () => {
       toast.error('Có lỗi xảy ra khi cập nhật trạng thái');
     }
   };
-  
+
   // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters({
+    console.log('Filter change:', { name, value });
+    console.log('Previous filters:', filters);
+
+    const newFilters = {
       ...filters,
       [name]: value
-    });
+    };
+
+    console.log('New filters:', newFilters);
+    setFilters(newFilters);
     setPage(1); // Reset to first page when filters change
   };
-  
+
   // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return format(date, 'dd/MM/yyyy', { locale: vi });
   };
-  
+
   // Get promotion type display text
   const getPromotionTypeText = (type) => {
     switch (type) {
@@ -264,7 +281,7 @@ const PromotionManagementPage = () => {
         return type;
     }
   };
-  
+
   // Get promotion value display text
   const getPromotionValueText = (promotion) => {
     switch (promotion.type) {
@@ -283,59 +300,62 @@ const PromotionManagementPage = () => {
         return promotion.value;
     }
   };
-  
+
   // Get status badge color
   const getStatusBadge = (promotion) => {
     const now = new Date();
     const startDate = new Date(promotion.startDate);
     const endDate = new Date(promotion.endDate);
-    
+
     if (!promotion.isActive) {
       return <Badge bg="secondary">Không hoạt động</Badge>;
     }
-    
+
     if (now < startDate) {
       return <Badge bg="info">Sắp diễn ra</Badge>;
     }
-    
+
     if (now > endDate) {
-      return <Badge bg="danger">Đã hết hạn</Badge>;
+      return <Badge bg="danger">Hết hạn</Badge>;
     }
-    
+
     return <Badge bg="success">Đang hoạt động</Badge>;
   };
-  
+
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">
         <FaTags className="me-2" />
         Quản lý Khuyến mãi
       </h1>
-      
+
       {/* Filters */}
       <Card className="mb-4 shadow-sm">
         <Card.Body>
           <Row>
             <Col md={3}>
               <Form.Group className="mb-3">
-                <Form.Label><FaFilter className="me-1" /> Trạng thái</Form.Label>
-                <Form.Select 
-                  name="isActive" 
-                  value={filters.isActive} 
+                <Form.Label>
+                  <FaFilter className="me-1" /> Trạng thái kích hoạt
+                  <small className="text-muted d-block">Được thiết lập bởi admin</small>
+                </Form.Label>
+                <Form.Select
+                  name="isActive"
+                  value={filters.isActive}
                   onChange={handleFilterChange}
                 >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="true">Đang hoạt động</option>
-                  <option value="false">Không hoạt động</option>
+                  <option value="">Tất cả</option>
+                  <option value="true">Đã kích hoạt</option>
+                  <option value="false">Chưa kích hoạt</option>
                 </Form.Select>
               </Form.Group>
             </Col>
             <Col md={3}>
               <Form.Group className="mb-3">
                 <Form.Label><FaFilter className="me-1" /> Loại khuyến mãi</Form.Label>
-                <Form.Select 
-                  name="type" 
-                  value={filters.type} 
+                <Form.Select
+                  name="type"
+                  value={filters.type}
                   onChange={handleFilterChange}
                 >
                   <option value="">Tất cả loại</option>
@@ -348,21 +368,25 @@ const PromotionManagementPage = () => {
             </Col>
             <Col md={3}>
               <Form.Group className="mb-3">
-                <Form.Label><FaFilter className="me-1" /> Thời gian hiệu lực</Form.Label>
-                <Form.Select 
-                  name="active" 
-                  value={filters.active} 
+                <Form.Label>
+                  <FaFilter className="me-1" /> Thời gian hiệu lực
+                  <small className="text-muted d-block">Dựa trên ngày hiện tại</small>
+                </Form.Label>
+                <Form.Select
+                  name="dateStatus"
+                  value={filters.dateStatus}
                   onChange={handleFilterChange}
                 >
                   <option value="">Tất cả</option>
-                  <option value="true">Đang có hiệu lực</option>
-                  <option value="false">Không có hiệu lực</option>
+                  <option value="current">🟢 Đang có hiệu lực</option>
+                  <option value="upcoming">🔵 Sắp diễn ra</option>
+                  <option value="expired">🔴 Đã hết hạn</option>
                 </Form.Select>
               </Form.Group>
             </Col>
             <Col md={3} className="d-flex align-items-end">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 className="w-100 mb-3"
                 onClick={handleOpenCreateModal}
               >
@@ -372,7 +396,7 @@ const PromotionManagementPage = () => {
           </Row>
         </Card.Body>
       </Card>
-      
+
       {/* Promotions List */}
       <Card className="shadow-sm">
         <Card.Body>
@@ -418,22 +442,22 @@ const PromotionManagementPage = () => {
                     </td>
                     <td>
                       <div className="d-flex gap-2">
-                        <Button 
-                          variant="outline-primary" 
+                        <Button
+                          variant="outline-primary"
                           size="sm"
                           onClick={() => handleOpenEditModal(promotion)}
                         >
                           <FaEdit />
                         </Button>
-                        <Button 
-                          variant="outline-danger" 
+                        <Button
+                          variant="outline-danger"
                           size="sm"
                           onClick={() => handleOpenDeleteModal(promotion)}
                         >
                           <FaTrashAlt />
                         </Button>
-                        <Button 
-                          variant={promotion.isActive ? "outline-secondary" : "outline-success"} 
+                        <Button
+                          variant={promotion.isActive ? "outline-secondary" : "outline-success"}
                           size="sm"
                           onClick={() => handleToggleStatus(promotion._id)}
                           title={promotion.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
@@ -447,7 +471,7 @@ const PromotionManagementPage = () => {
               </tbody>
             </Table>
           )}
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="d-flex justify-content-center mt-4">
@@ -473,7 +497,7 @@ const PromotionManagementPage = () => {
           )}
         </Card.Body>
       </Card>
-      
+
       {/* Promotion Form Modal */}
       <Modal show={showModal} onHide={handleCloseModal} size="lg">
         <Modal.Header closeButton>
@@ -510,7 +534,7 @@ const PromotionManagementPage = () => {
                 </Form.Group>
               </Col>
             </Row>
-            
+
             <Form.Group className="mb-3">
               <Form.Label>Mô tả</Form.Label>
               <Form.Control
@@ -521,7 +545,7 @@ const PromotionManagementPage = () => {
                 onChange={handleInputChange}
               />
             </Form.Group>
-            
+
             <Row>
               <Col md={4}>
                 <Form.Group className="mb-3">
@@ -566,7 +590,7 @@ const PromotionManagementPage = () => {
                 </Form.Group>
               </Col>
             </Row>
-            
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -594,7 +618,7 @@ const PromotionManagementPage = () => {
                 </Form.Group>
               </Col>
             </Row>
-            
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -625,7 +649,7 @@ const PromotionManagementPage = () => {
                 )}
               </Col>
             </Row>
-            
+
             <Form.Group className="mb-3">
               <Form.Check
                 type="checkbox"
@@ -635,7 +659,7 @@ const PromotionManagementPage = () => {
                 onChange={handleInputChange}
               />
             </Form.Group>
-            
+
             <div className="d-flex justify-content-end mt-4">
               <Button variant="secondary" onClick={handleCloseModal} className="me-2">
                 Hủy
@@ -647,7 +671,7 @@ const PromotionManagementPage = () => {
           </Form>
         </Modal.Body>
       </Modal>
-      
+
       {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={handleCloseDeleteModal}>
         <Modal.Header closeButton>

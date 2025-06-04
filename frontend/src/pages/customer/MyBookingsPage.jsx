@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Badge, Button, Modal, Spinner, Alert } from 'react-bootstrap';
-import { 
-  FaListAlt, 
-  FaTimesCircle, 
-  FaCalendarAlt, 
-  FaClock, 
-  FaUsers, 
+import {
+  FaListAlt,
+  FaTimesCircle,
+  FaCalendarAlt,
+  FaClock,
+  FaUsers,
   FaInfoCircle,
   FaCheckCircle,
   FaBan,
@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
+import { formatCurrency } from '../../utils/format';
 
 const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -32,7 +33,7 @@ const MyBookingsPage = () => {
   const fetchMyBookings = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/bookings/my-bookings');
+      const response = await api.get('/api/v1/bookings/my-bookings');
       setBookings(response.data.data.bookings);
       setError('');
     } catch (err) {
@@ -48,15 +49,15 @@ const MyBookingsPage = () => {
 
     try {
       setCancellingBooking(true);
-      await api.put(`/api/bookings/${selectedBooking._id}/cancel-by-customer`);
-      
+      await api.put(`/api/v1/bookings/${selectedBooking._id}/cancel-by-customer`);
+
       // Update local state
-      setBookings(bookings.map(booking => 
-        booking._id === selectedBooking._id 
-          ? { ...booking, status: 'cancelled_by_customer' } 
+      setBookings(bookings.map(booking =>
+        booking._id === selectedBooking._id
+          ? { ...booking, status: 'cancelled_by_customer' }
           : booking
       ));
-      
+
       toast.success('Đã hủy đặt bàn thành công');
       setShowCancelModal(false);
     } catch (err) {
@@ -101,7 +102,7 @@ const MyBookingsPage = () => {
     const bookingDate = new Date(`${booking.date.split('T')[0]}T${booking.time}`);
     const now = new Date();
     const hoursDifference = (bookingDate - now) / (1000 * 60 * 60);
-    
+
     return hoursDifference >= 2;
   };
 
@@ -201,6 +202,55 @@ const MyBookingsPage = () => {
                         </ul>
                       </div>
                     )}
+
+                    {/* Promotion Info */}
+                    {booking.appliedPromotion && (
+                      <div className="mb-3">
+                        <strong>Khuyến mãi:</strong>
+                        <div className="alert alert-info py-2 mb-0 mt-1">
+                          <small>
+                            🎫 <strong>{booking.appliedPromotion.name}</strong><br />
+                            Mã: {booking.appliedPromotion.code} |
+                            Giảm: {formatCurrency(booking.appliedPromotion.discountAmount)}
+                          </small>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Payment Info */}
+                    {booking.paymentInfo && (
+                      <div className="mb-3">
+                        <strong>Thông tin thanh toán:</strong>
+                        <div className="border rounded p-2 mt-1">
+                          <div className="d-flex justify-content-between">
+                            <small>Tạm tính:</small>
+                            <small>{formatCurrency(booking.paymentInfo.subtotal)}</small>
+                          </div>
+                          {booking.paymentInfo.discountAmount > 0 && (
+                            <div className="d-flex justify-content-between text-success">
+                              <small>Giảm giá:</small>
+                              <small>-{formatCurrency(booking.paymentInfo.discountAmount)}</small>
+                            </div>
+                          )}
+                          <hr className="my-1" />
+                          <div className="d-flex justify-content-between fw-bold">
+                            <small>Tổng cộng:</small>
+                            <small className="text-primary">{formatCurrency(booking.paymentInfo.totalAmount)}</small>
+                          </div>
+                          <div className="mt-1">
+                            <small className="text-muted">
+                              Phương thức: {
+                                booking.paymentInfo.paymentMethod === 'cash' ? 'Tiền mặt' :
+                                  booking.paymentInfo.paymentMethod === 'card' ? 'Thẻ' :
+                                    booking.paymentInfo.paymentMethod === 'transfer' ? 'Chuyển khoản' :
+                                      booking.paymentInfo.paymentMethod === 'ewallet' ? 'Ví điện tử' :
+                                        booking.paymentInfo.paymentMethod
+                              }
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </Card.Body>
                   <Card.Footer>
                     {canCancelBooking(booking) ? (
@@ -217,8 +267,8 @@ const MyBookingsPage = () => {
                         {['cancelled_by_customer', 'cancelled_by_restaurant'].includes(booking.status)
                           ? 'Đặt bàn đã bị hủy'
                           : ['completed', 'no_show'].includes(booking.status)
-                          ? 'Đặt bàn đã hoàn thành'
-                          : 'Không thể hủy (dưới 2 giờ trước giờ đặt)'}
+                            ? 'Đặt bàn đã hoàn thành'
+                            : 'Không thể hủy (dưới 2 giờ trước giờ đặt)'}
                       </div>
                     )}
                   </Card.Footer>

@@ -2,12 +2,14 @@ import React from 'react';
 import { Table, Button, Form, Badge } from 'react-bootstrap';
 import { FaTrash, FaPlusCircle, FaMinusCircle, FaPen } from 'react-icons/fa';
 
-const OrderDetails = ({ 
-  orderItems, 
-  subTotal, 
-  taxAmount, 
-  discountAmount, 
+const OrderDetails = ({
+  orderItems,
+  subTotal,
+  taxAmount,
+  discountAmount,
   totalAmount,
+  appliedPromotion,
+  promotionCode,
   onUpdateQuantity,
   onRemoveItem,
   onUpdateNotes,
@@ -17,8 +19,8 @@ const OrderDetails = ({
 }) => {
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0
     }).format(amount);
@@ -36,14 +38,14 @@ const OrderDetails = ({
             <div>
               <Badge bg={
                 currentOrder.orderStatus === 'pending_confirmation' ? 'warning' :
-                currentOrder.orderStatus === 'confirmed_by_customer' ? 'info' :
-                currentOrder.orderStatus === 'paid' ? 'success' :
-                'secondary'
+                  currentOrder.orderStatus === 'confirmed_by_customer' ? 'info' :
+                    currentOrder.orderStatus === 'paid' ? 'success' :
+                      'secondary'
               }>
                 {currentOrder.orderStatus === 'pending_confirmation' ? 'Chờ xác nhận' :
-                 currentOrder.orderStatus === 'confirmed_by_customer' ? 'Đã xác nhận' :
-                 currentOrder.orderStatus === 'paid' ? 'Đã thanh toán' :
-                 'Đang xử lý'}
+                  currentOrder.orderStatus === 'confirmed_by_customer' ? 'Đã xác nhận' :
+                    currentOrder.orderStatus === 'paid' ? 'Đã thanh toán' :
+                      'Đang xử lý'}
               </Badge>
             </div>
           )}
@@ -134,8 +136,27 @@ const OrderDetails = ({
         </div>
         {discountAmount > 0 && (
           <div className="d-flex justify-content-between mb-2 text-danger">
-            <span>Giảm giá:</span>
+            <span>
+              Giảm giá:
+              {appliedPromotion && promotionCode && (
+                <small className="text-success ms-1">
+                  (Mã: {promotionCode})
+                </small>
+              )}
+            </span>
             <span>-{formatCurrency(discountAmount)}</span>
+          </div>
+        )}
+        {appliedPromotion && (
+          <div className="mb-2">
+            <div className="small text-success">
+              🎫 <strong>{appliedPromotion.name}</strong>
+              <br />
+              <span className="text-muted">
+                Loại: {appliedPromotion.type === 'percentage' ? 'Phần trăm' : 'Số tiền cố định'} •
+                Giá trị: {appliedPromotion.type === 'percentage' ? `${appliedPromotion.value}%` : formatCurrency(appliedPromotion.value)}
+              </span>
+            </div>
           </div>
         )}
         <div className="d-flex justify-content-between mb-2">

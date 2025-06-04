@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 const BookingPage = () => {
   const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -23,13 +23,23 @@ const BookingPage = () => {
     notes: '',
     preOrderedItems: []
   });
-  
+
   const [availableTimes, setAvailableTimes] = useState([]);
   const [recommendedItems, setRecommendedItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
+
+  // Promotion states
+  const [promotionCode, setPromotionCode] = useState('');
+  const [appliedPromotion, setAppliedPromotion] = useState(null);
+  const [promotionLoading, setPromotionLoading] = useState(false);
+  const [promotionError, setPromotionError] = useState('');
+
+  // Payment states
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+
   // Fill user data if authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -41,7 +51,7 @@ const BookingPage = () => {
       }));
     }
   }, [isAuthenticated, user]);
-  
+
   // Fetch recommended menu items
   useEffect(() => {
     const fetchRecommendedItems = async () => {
@@ -57,10 +67,10 @@ const BookingPage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchRecommendedItems();
   }, []);
-  
+
   // Generate available time slots (this would ideally come from the backend)
   useEffect(() => {
     // Example: Restaurant open from 10:00 to 22:00, slots every 30 minutes
@@ -70,38 +80,38 @@ const BookingPage = () => {
       const isToday = formData.date.toDateString() === now.toDateString();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
-      
+
       for (let hour = 10; hour < 22; hour++) {
         for (let minute = 0; minute < 60; minute += 30) {
           // Skip times that have already passed today
           if (isToday && (hour < currentHour || (hour === currentHour && minute <= currentMinute))) {
             continue;
           }
-          
+
           const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
           slots.push(timeString);
         }
       }
-      
+
       setAvailableTimes(slots);
     };
-    
+
     generateTimeSlots();
   }, [formData.date]);
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleDateChange = (date) => {
     setFormData(prev => ({ ...prev, date }));
   };
-  
+
   const handlePreOrderToggle = (menuItemId) => {
     setFormData(prev => {
       const existingItem = prev.preOrderedItems.find(item => item.menuItem === menuItemId);
-      
+
       if (existingItem) {
         // Remove item if it exists
         return {
@@ -120,42 +130,123 @@ const BookingPage = () => {
       }
     });
   };
-  
+
   const handlePreOrderQuantityChange = (menuItemId, quantity) => {
     setFormData(prev => ({
       ...prev,
-      preOrderedItems: prev.preOrderedItems.map(item => 
+      preOrderedItems: prev.preOrderedItems.map(item =>
         item.menuItem === menuItemId ? { ...item, quantity: parseInt(quantity) } : item
       )
     }));
   };
-  
+
   const handlePreOrderNotesChange = (menuItemId, notes) => {
     setFormData(prev => ({
       ...prev,
-      preOrderedItems: prev.preOrderedItems.map(item => 
+      preOrderedItems: prev.preOrderedItems.map(item =>
         item.menuItem === menuItemId ? { ...item, notes } : item
       )
     }));
   };
-  
+
+  // Calculate total amount for pre-ordered items
+  const calculateSubtotal = () => {
+    return formData.preOrderedItems.reduce((total, item) => {
+      const menuItem = recommendedItems.find(mi => mi._id === item.menuItem);
+      return total + (menuItem ? menuItem.price * item.quantity : 0);
+    }, 0);
+  };
+
+  // Calculate discount amount
+  const calculateDiscount = (subtotal) => {
+    if (!appliedPromotion) return 0;
+
+    let discount = 0;
+    if (appliedPromotion.type === 'percentage') {
+      discount = subtotal * (appliedPromotion.value / 100);
+      if (appliedPromotion.maxDiscountAmount && discount > appliedPromotion.maxDiscountAmount) {
+        discount = appliedPromotion.maxDiscountAmount;
+      }
+    } else if (appliedPromotion.type === 'fixed_amount') {
+      discount = Math.min(appliedPromotion.value, subtotal);
+    }
+    return discount;
+  };
+
+  // Apply promotion code
+  const handleApplyPromotion = async () => {
+    if (!promotionCode.trim()) {
+      setPromotionError('Vui lòng nhập mã khuyến mãi');
+      return;
+    }
+
+    const subtotal = calculateSubtotal();
+    if (subtotal === 0) {
+      setPromotionError('Vui lòng chọn món ăn trước khi áp dụng khuyến mãi');
+      return;
+    }
+
+    setPromotionLoading(true);
+    setPromotionError('');
+
+    try {
+      const response = await api.post('/api/v1/promotions/apply-code', {
+        code: promotionCode,
+        orderTotal: subtotal
+      });
+
+      setAppliedPromotion(response.data.data.promotion);
+      toast.success(`Áp dụng mã khuyến mãi thành công! Giảm ${formatCurrency(response.data.data.discountAmount)}`);
+    } catch (error) {
+      setPromotionError(error.response?.data?.message || 'Mã khuyến mãi không hợp lệ');
+    } finally {
+      setPromotionLoading(false);
+    }
+  };
+
+  // Remove applied promotion
+  const handleRemovePromotion = () => {
+    setAppliedPromotion(null);
+    setPromotionCode('');
+    setPromotionError('');
+    toast.info('Đã gỡ mã khuyến mãi');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!formData.customerName || !formData.customerPhone || !formData.time || formData.numberOfGuests < 1) {
       setError('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
-    
+
     try {
       setSubmitting(true);
       setError('');
-      
-      const response = await api.post('/api/bookings', formData);
-      
+
+      // Prepare booking data with promotion and payment info
+      const bookingData = {
+        ...formData,
+        appliedPromotion: appliedPromotion ? {
+          id: appliedPromotion._id,
+          code: appliedPromotion.code,
+          name: appliedPromotion.name,
+          discountAmount: calculateDiscount(calculateSubtotal())
+        } : null,
+        paymentInfo: formData.preOrderedItems.length > 0 ? {
+          subtotal: calculateSubtotal(),
+          discountAmount: calculateDiscount(calculateSubtotal()),
+          totalAmount: calculateSubtotal() - calculateDiscount(calculateSubtotal()),
+          paymentMethod: paymentMethod,
+          paymentStatus: 'pending'
+        } : null
+      };
+
+      const response = await api.post('/api/v1/bookings', bookingData);
+
       toast.success('Đặt bàn thành công! Chúng tôi sẽ liên hệ để xác nhận.');
-      
+
       // Redirect to my bookings page if user is logged in
       if (isAuthenticated) {
         navigate('/my-bookings');
@@ -171,6 +262,9 @@ const BookingPage = () => {
           notes: '',
           preOrderedItems: []
         });
+        setAppliedPromotion(null);
+        setPromotionCode('');
+        setShowPayment(false);
       }
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -179,7 +273,7 @@ const BookingPage = () => {
       setSubmitting(false);
     }
   };
-  
+
   return (
     <div className="py-5">
       <Container>
@@ -194,7 +288,7 @@ const BookingPage = () => {
             </p>
           </Col>
         </Row>
-        
+
         {error && (
           <Row className="mb-4">
             <Col>
@@ -202,7 +296,7 @@ const BookingPage = () => {
             </Col>
           </Row>
         )}
-        
+
         <Row>
           <Col lg={7}>
             <Card className="shadow-sm mb-4">
@@ -237,7 +331,7 @@ const BookingPage = () => {
                       </Form.Group>
                     </Col>
                   </Row>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Email</Form.Label>
                     <Form.Control
@@ -247,7 +341,7 @@ const BookingPage = () => {
                       onChange={handleInputChange}
                     />
                   </Form.Group>
-                  
+
                   <Row>
                     <Col md={6}>
                       <Form.Group className="mb-3">
@@ -276,7 +370,7 @@ const BookingPage = () => {
                       </Form.Group>
                     </Col>
                   </Row>
-                  
+
                   <Form.Group className="mb-4">
                     <Form.Label>Giờ <span className="text-danger">*</span></Form.Label>
                     <div className="d-flex flex-wrap gap-2">
@@ -292,7 +386,7 @@ const BookingPage = () => {
                       ))}
                     </div>
                   </Form.Group>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Ghi chú</Form.Label>
                     <Form.Control
@@ -304,7 +398,7 @@ const BookingPage = () => {
                       placeholder="Yêu cầu đặc biệt, dị ứng thực phẩm, hoặc các ghi chú khác..."
                     />
                   </Form.Group>
-                  
+
                   <Button
                     type="submit"
                     variant="primary"
@@ -328,7 +422,7 @@ const BookingPage = () => {
               </Card.Body>
             </Card>
           </Col>
-          
+
           <Col lg={5}>
             <Card className="shadow-sm mb-4">
               <Card.Header className="bg-success text-white">
@@ -355,7 +449,7 @@ const BookingPage = () => {
                       const orderItem = formData.preOrderedItems.find(
                         (orderItem) => orderItem.menuItem === item._id
                       );
-                      
+
                       return (
                         <Card key={item._id} className={`mb-3 ${isSelected ? 'border-primary' : ''}`}>
                           <Row className="g-0">
@@ -391,7 +485,7 @@ const BookingPage = () => {
                                   >
                                     {isSelected ? 'Đã chọn' : 'Chọn món'}
                                   </Button>
-                                  
+
                                   {isSelected && (
                                     <Form.Control
                                       type="number"
@@ -403,7 +497,7 @@ const BookingPage = () => {
                                     />
                                   )}
                                 </div>
-                                
+
                                 {isSelected && (
                                   <Form.Control
                                     type="text"
@@ -424,7 +518,7 @@ const BookingPage = () => {
                 )}
               </Card.Body>
             </Card>
-            
+
             <Card className="shadow-sm">
               <Card.Header className="bg-info text-white">
                 <h4 className="mb-0">
@@ -447,6 +541,107 @@ const BookingPage = () => {
                 </p>
               </Card.Body>
             </Card>
+
+            {/* Order Summary & Payment Section */}
+            {formData.preOrderedItems.length > 0 && (
+              <Card className="shadow-sm mt-4">
+                <Card.Header className="bg-warning text-dark">
+                  <h4 className="mb-0">
+                    💰 Tổng Kết & Thanh Toán
+                  </h4>
+                </Card.Header>
+                <Card.Body>
+                  {/* Promotion Code Section */}
+                  <div className="mb-4">
+                    <h6>🎫 Mã Khuyến Mãi</h6>
+                    {appliedPromotion ? (
+                      <div className="alert alert-success d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{appliedPromotion.name}</strong>
+                          <br />
+                          <small>Mã: {appliedPromotion.code}</small>
+                        </div>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={handleRemovePromotion}
+                        >
+                          Gỡ
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="input-group mb-2">
+                          <Form.Control
+                            type="text"
+                            placeholder="Nhập mã khuyến mãi"
+                            value={promotionCode}
+                            onChange={(e) => setPromotionCode(e.target.value.toUpperCase())}
+                            disabled={promotionLoading}
+                          />
+                          <Button
+                            variant="primary"
+                            onClick={handleApplyPromotion}
+                            disabled={promotionLoading || !promotionCode.trim()}
+                          >
+                            {promotionLoading ? (
+                              <Spinner animation="border" size="sm" />
+                            ) : (
+                              'Áp dụng'
+                            )}
+                          </Button>
+                        </div>
+                        {promotionError && (
+                          <div className="text-danger small">{promotionError}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="mb-4">
+                    <h6>📋 Tổng Kết Đơn Hàng</h6>
+                    <div className="border rounded p-3">
+                      <div className="d-flex justify-content-between mb-2">
+                        <span>Tạm tính:</span>
+                        <span>{formatCurrency(calculateSubtotal())}</span>
+                      </div>
+                      {appliedPromotion && (
+                        <div className="d-flex justify-content-between mb-2 text-success">
+                          <span>Giảm giá:</span>
+                          <span>-{formatCurrency(calculateDiscount(calculateSubtotal()))}</span>
+                        </div>
+                      )}
+                      <hr />
+                      <div className="d-flex justify-content-between fw-bold">
+                        <span>Tổng cộng:</span>
+                        <span className="text-primary">
+                          {formatCurrency(calculateSubtotal() - calculateDiscount(calculateSubtotal()))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div className="mb-3">
+                    <h6>💳 Phương Thức Thanh Toán</h6>
+                    <Form.Select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                    >
+                      <option value="cash">Thanh toán tiền mặt khi đến</option>
+                      <option value="card">Thẻ tín dụng/ghi nợ</option>
+                      <option value="transfer">Chuyển khoản ngân hàng</option>
+                      <option value="ewallet">Ví điện tử</option>
+                    </Form.Select>
+                  </div>
+
+                  <div className="text-muted small">
+                    * Bạn có thể thanh toán trước hoặc thanh toán khi đến nhà hàng
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
           </Col>
         </Row>
       </Container>
