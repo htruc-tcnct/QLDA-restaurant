@@ -142,13 +142,31 @@ exports.createTable = catchAsync(async (req, res, next) => {
     return next(new AppError("Vui lòng cung cấp tên và sức chứa của bàn", 400));
   }
 
-  // Create new table
+  // Generate a unique tableNumber
+  // Find the highest existing tableNumber with format 'tableX' where X is a number
+  const tables = await Table.find({ tableNumber: /^table\d+$/ })
+    .sort({ tableNumber: -1 })
+    .limit(1);
+
+  let nextNumber = 1;
+  if (tables.length > 0 && tables[0].tableNumber) {
+    // Extract the number from the tableNumber string (e.g., 'table3' -> 3)
+    const match = tables[0].tableNumber.match(/^table(\d+)$/);
+    if (match && match[1]) {
+      nextNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  const tableNumber = `table${nextNumber}`;
+
+  // Create new table with the generated tableNumber
   const newTable = await Table.create({
     name,
     capacity,
     status: status || "available",
     location: location || "",
     currentOrderId: null,
+    tableNumber: tableNumber,
   });
 
   res.status(201).json({
@@ -163,7 +181,7 @@ exports.createTable = catchAsync(async (req, res, next) => {
 // @route   PUT /api/v1/tables/:id
 // @access  Private (manager)
 exports.updateTable = catchAsync(async (req, res, next) => {
-  const { name, capacity, location } = req.body;
+  const { name, capacity, location, status } = req.body;
 
   // Find table first to check if it exists
   const table = await Table.findById(req.params.id);
@@ -172,10 +190,10 @@ exports.updateTable = catchAsync(async (req, res, next) => {
     return next(new AppError("Không tìm thấy bàn với ID này", 404));
   }
 
-  // Update the table
+  // Update the table (preserve tableNumber)
   const updatedTable = await Table.findByIdAndUpdate(
     req.params.id,
-    { name, capacity, location },
+    { name, capacity, location, status },
     {
       new: true,
       runValidators: true,
