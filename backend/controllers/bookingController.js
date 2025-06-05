@@ -59,27 +59,98 @@ exports.createBooking = catchAsync(async (req, res, next) => {
   if (req.user) {
     bookingData.customer = req.user._id;
   }
-
-  // Tìm bàn trống có đủ chỗ ngồi cho khách
-  const availableTable = await Table.findOne({
+  // Bước 1: Tìm bàn trống có đủ chỗ ngồi cho khách
+  let selectedTable = await Table.findOne({
     status: "available",
     capacity: { $gte: numberOfGuests },
   }).sort("capacity"); // Sắp xếp theo sức chứa để lấy bàn phù hợp nhất
 
-  // Nếu có bàn trống, gán bàn cho booking và cập nhật trạng thái bàn
-  if (availableTable) {
-    bookingData.tableAssigned = availableTable._id;
+  // Bước 2: Nếu không có bàn trống, tìm bàn có trạng thái reserved với:
+  // - Ngày khác với đặt bàn hiện tại, HOẶC
+  // - Cùng ngày nhưng thời gian cách nhau ít nhất 1 giờ (để có thời gian dọn dẹp và chuẩn bị)
+  if (!selectedTable) {
+    console.log(
+      "Không tìm thấy bàn trống, tìm kiếm bàn đã đặt nhưng có thể dùng cho đặt chỗ này"
+    );
+
+    // Lấy tất cả các bàn đã đặt trước với đủ sức chứa
+    const reservedTables = await Table.find({
+      status: "reserved",
+      capacity: { $gte: numberOfGuests },
+    }).sort("capacity");
+
+    // Kiểm tra từng bàn đã đặt trước xem có thể dùng cho đặt chỗ mới không
+    for (const table of reservedTables) {
+      // Tìm tất cả các đặt chỗ hiện tại cho bàn này
+      const existingBookings = await Booking.find({
+        tableAssigned: table._id,
+        status: { $in: ["pending", "confirmed"] },
+      });
+
+      let canUseTable = true;
+
+      // Chuyển đổi ngày và giờ đặt bàn mới thành đối tượng Date để so sánh
+      const newBookingDate = new Date(date);
+      const [newBookingHour, newBookingMinute] = time.split(":").map(Number);
+      const newBookingTimeInMinutes = newBookingHour * 60 + newBookingMinute;
+
+      // Kiểm tra từng đặt chỗ hiện tại
+      for (const booking of existingBookings) {
+        const existingBookingDate = new Date(booking.date);
+
+        // So sánh ngày: nếu khác ngày thì có thể dùng bàn này
+        const isSameDate =
+          existingBookingDate.getFullYear() === newBookingDate.getFullYear() &&
+          existingBookingDate.getMonth() === newBookingDate.getMonth() &&
+          existingBookingDate.getDate() === newBookingDate.getDate();
+
+        if (isSameDate) {
+          // Nếu cùng ngày, kiểm tra thời gian có cách nhau ít nhất 1 giờ không
+          const [existingHour, existingMinute] = booking.time
+            .split(":")
+            .map(Number);
+          const existingTimeInMinutes = existingHour * 60 + existingMinute;
+
+          const timeDifference = Math.abs(
+            existingTimeInMinutes - newBookingTimeInMinutes
+          );
+
+          if (timeDifference < 60) {
+            // Nếu cách nhau ít hơn 1 giờ
+            console.log(
+              `Không thể dùng bàn ${table.name} vì đã có đặt chỗ vào ${booking.time} (chênh lệch ${timeDifference} phút)`
+            );
+            canUseTable = false;
+            break;
+          }
+        }
+      }
+
+      if (canUseTable) {
+        console.log(
+          `Có thể dùng bàn ${table.name} đã đặt trước vì không có xung đột thời gian`
+        );
+        selectedTable = table;
+        break;
+      }
+    }
+  }
+
+  // Nếu tìm được bàn phù hợp (trống hoặc đã đặt trước nhưng có thể dùng được)
+  if (selectedTable) {
+    bookingData.tableAssigned = selectedTable._id;
     bookingData.status = "confirmed"; // Xác nhận đặt bàn ngay vì đã tìm được bàn
 
-    // Cập nhật trạng thái bàn thành reserved
-    await Table.findByIdAndUpdate(availableTable._id, { status: "reserved" });
+    // Cập nhật trạng thái bàn thành reserved (nếu chưa phải reserved)
+    if (selectedTable.status !== "reserved") {
+      await Table.findByIdAndUpdate(selectedTable._id, { status: "reserved" });
+    }
+
     console.log(
-      `Đã gán bàn ${availableTable.name} cho đặt chỗ và cập nhật trạng thái thành reserved`
+      `Đã gán bàn ${selectedTable.name} cho đặt chỗ và đảm bảo trạng thái là reserved`
     );
   } else {
-    console.log(
-      "Không tìm thấy bàn trống phù hợp, đặt chỗ ở trạng thái pending"
-    );
+    console.log("Không tìm thấy bàn phù hợp nào, đặt chỗ ở trạng thái pending");
   }
 
   const booking = await Booking.create(bookingData);
@@ -437,10 +508,8 @@ exports.updateBooking = catchAsync(async (req, res, next) => {
 
         console.log(
           `Booking time: ${booking.time}, Request time: ${bookingTime}, Difference: ${timeDifferenceInMinutes} minutes`
-        );
-
-        // If the booking is within 45 minutes, consider the table booked
-        if (timeDifferenceInMinutes <= 45) {
+        ); // If the booking is within 60 minutes (1 hour), consider the table booked
+        if (timeDifferenceInMinutes < 60) {
           return {
             isBooked: true,
             booking: booking,

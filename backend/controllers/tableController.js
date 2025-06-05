@@ -17,9 +17,8 @@ const isTableBookedAt = async (tableId, dateTime) => {
   console.log(
     `Checking if table ${tableId} is booked at ${bookingDate} ${bookingTime}`
   );
-
   // Check if there are any bookings for this table around the specified time
-  // For testing purposes, we're using a smaller window of 15 minutes instead of 45
+  // We consider a table already booked if there's a booking within 1 hour of the requested time
   const bookings = await Booking.find({
     tableAssigned: tableId,
     date: new Date(bookingDate),
@@ -43,12 +42,10 @@ const isTableBookedAt = async (tableId, dateTime) => {
 
       console.log(
         `Booking time: ${booking.time}, Request time: ${bookingTime}, Difference: ${timeDifferenceInMinutes} minutes`
-      );
-
-      // If the booking is within 15 minutes, consider the table booked (reduced from 45 for testing)
-      if (timeDifferenceInMinutes <= 15) {
+      ); // If the booking is within 60 minutes (1 hour), consider the table booked
+      if (timeDifferenceInMinutes < 60) {
         console.log(
-          `Table ${tableId} is already booked within 15 minutes of the requested time`
+          `Table ${tableId} is already booked within ${timeDifferenceInMinutes} minutes of the requested time (less than 1 hour gap)`
         );
         return {
           isBooked: true,
