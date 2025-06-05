@@ -1,26 +1,30 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  FaHome, 
-  FaUtensils, 
-  FaUsers, 
-  FaShoppingCart, 
-  FaClipboardList, 
-  FaCog, 
+import {
+  FaHome,
+  FaUtensils,
+  FaUsers,
+  FaShoppingCart,
+  FaClipboardList,
+  FaCog,
   FaCalendarAlt,
   FaTable,
   FaCashRegister,
   FaChartLine,
-  FaTags
+  FaTags,
+  FaUserCircle
 } from 'react-icons/fa';
 import useAuthStore from '../../store/authStore';
 
 export default function NewAdminSidebar() {
   const location = useLocation();
   const { user } = useAuthStore();
-  
+
   // Define all possible menu items
   const allMenuItems = [
     { path: '/admin', icon: <FaHome />, label: 'Dashboard', roles: ['admin', 'manager', 'chef', 'staff', 'waiter'] },
+    // Profile links - different paths for different roles
+    { path: '/admin/profile', icon: <FaUserCircle />, label: 'Thông tin cá nhân', roles: ['admin', 'manager', 'chef', 'staff'] },
+    { path: '/waiter/profile', icon: <FaUserCircle />, label: 'Thông tin cá nhân', roles: ['waiter'] },
     { path: '/admin/menu', icon: <FaUtensils />, label: 'Quản lý thực đơn', roles: ['admin', 'manager', 'chef'] },
     { path: '/admin/users', icon: <FaUsers />, label: 'Quản lý người dùng', roles: ['admin', 'manager'] },
     { path: '/admin/tables', icon: <FaTable />, label: 'Quản lý bàn', roles: ['admin', 'manager', 'waiter'] },
@@ -36,7 +40,7 @@ export default function NewAdminSidebar() {
   const menuItems = allMenuItems.filter(item => {
     // If no user or no roles specified, don't show the item
     if (!user || !item.roles) return false;
-    
+
     // Check if the user's role is included in the allowed roles for this menu item
     return item.roles.includes(user.role);
   });
@@ -52,11 +56,10 @@ export default function NewAdminSidebar() {
         <ul className="nav flex-column">
           {menuItems.map((item) => (
             <li key={item.path} className="nav-item">
-              <Link 
-                to={item.path} 
-                className={`nav-link text-white py-3 px-4 d-flex align-items-center gap-2 ${
-                  location.pathname === item.path ? 'active bg-primary' : ''
-                }`}
+              <Link
+                to={item.path}
+                className={`nav-link text-white py-3 px-4 d-flex align-items-center gap-2 ${location.pathname === item.path ? 'active bg-primary' : ''
+                  }`}
               >
                 {item.icon}
                 <span>{item.label}</span>

@@ -12,6 +12,7 @@ import CustomerMenuPage from './pages/customer/CustomerMenuPage';
 import FavoriteDishesPage from './pages/customer/FavoriteDishesPage';
 import BookingPage from './pages/customer/BookingPage';
 import MyBookingsPage from './pages/customer/MyBookingsPage';
+import CustomerProfilePage from './pages/customer/CustomerProfilePage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -22,10 +23,14 @@ import PromotionManagementPage from './pages/admin/PromotionManagementPage';
 import OrderManagementPage from './pages/admin/OrderManagementPage';
 import BookingManagementPage from './pages/admin/BookingManagementPage';
 import TableManagementPage from './pages/admin/TableManagementPage';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 
 // Waiter Pages
 import PointOfSalePage from './pages/waiter/PointOfSalePage';
 import TestTablesPage from './pages/waiter/TestTablesPage';
+import WaiterProfilePage from './pages/waiter/WaiterProfilePage';
+import WaiterSettingsPage from './pages/waiter/WaiterSettingsPage';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -51,10 +56,10 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        
+
         {/* Test Routes */}
         <Route path="/test-tables" element={<TestTablesPage />} />
-        
+
         {/* Public Routes with Customer Layout */}
         <Route path="/" element={<CustomerLayout />}>
           <Route index element={<HomePage />} />
@@ -81,6 +86,7 @@ function App() {
           <Route path="/" element={<CustomerLayout />}>
             <Route path="favorites" element={<FavoriteDishesPage />} />
             <Route path="my-bookings" element={<MyBookingsPage />} />
+            <Route path="profile" element={<CustomerProfilePage />} />
             {/* Add more customer routes here */}
           </Route>
         </Route>
@@ -97,6 +103,8 @@ function App() {
               <Route path="promotions" element={<PromotionManagementPage />} />
               <Route path="orders" element={<OrderManagementPage />} />
               <Route path="bookings" element={<BookingManagementPage />} />
+              <Route path="profile" element={<AdminProfilePage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
               {/* Add more admin routes here */}
             </Route>
           </Route>
@@ -107,6 +115,8 @@ function App() {
           <Route element={<RoleBasedRoute allowedRoles={['waiter', 'manager', 'admin']} />}>
             <Route path="/waiter" element={<AdminLayout />}>
               <Route path="pos" element={<PointOfSalePage />} />
+              <Route path="profile" element={<WaiterProfilePage />} />
+              <Route path="settings" element={<WaiterSettingsPage />} />
             </Route>
           </Route>
         </Route>
