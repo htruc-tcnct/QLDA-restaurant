@@ -24,7 +24,8 @@ const bookingService = {
       queryString += `customerId=${filters.customerId}&`;
     }
     
-    const url = `/api/v1/bookings${queryString ? '?' + queryString : ''}`;
+    // Hỗ trợ cả hai endpoint API
+    const url = `/api/bookings${queryString ? '?' + queryString : ''}`;
     console.log('Requesting bookings from URL:', url);
     return api.get(url);
   },
@@ -35,7 +36,16 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu chi tiết đặt bàn
    */
   getBookingById: async (bookingId) => {
-    return api.get(`/api/v1/bookings/${bookingId}`);
+    // Thử endpoint đầu tiên
+    try {
+      return await api.get(`/api/bookings/${bookingId}`);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        // Nếu không tìm thấy, thử endpoint thứ hai
+        return api.get(`/api/v1/bookings/${bookingId}`);
+      }
+      throw error;
+    }
   },
   
   /**
@@ -44,7 +54,7 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đặt bàn đã tạo
    */
   createBooking: async (bookingData) => {
-    return api.post('/api/v1/bookings', bookingData);
+    return api.post('/api/bookings', bookingData);
   },
   
   /**
@@ -54,7 +64,14 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đặt bàn đã cập nhật
    */
   updateBookingStatus: async (bookingId, statusData) => {
-    return api.put(`/api/v1/bookings/${bookingId}/status`, statusData);
+    try {
+      return await api.put(`/api/bookings/${bookingId}/status`, statusData);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.put(`/api/v1/bookings/${bookingId}/status`, statusData);
+      }
+      throw error;
+    }
   },
   
   /**
@@ -64,7 +81,14 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đặt bàn đã cập nhật
    */
   updateBooking: async (bookingId, bookingData) => {
-    return api.put(`/api/v1/bookings/${bookingId}`, bookingData);
+    try {
+      return await api.put(`/api/bookings/${bookingId}`, bookingData);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.put(`/api/v1/bookings/${bookingId}`, bookingData);
+      }
+      throw error;
+    }
   },
   
   /**
@@ -73,7 +97,14 @@ const bookingService = {
    * @returns {Promise} Promise kết quả hủy
    */
   cancelBooking: async (bookingId, reason) => {
-    return api.put(`/api/v1/bookings/${bookingId}/cancel`, { reason });
+    try {
+      return await api.put(`/api/bookings/${bookingId}/cancel`, { reason });
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.put(`/api/v1/bookings/${bookingId}/cancel`, { reason });
+      }
+      throw error;
+    }
   },
   
   /**
@@ -82,7 +113,14 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đơn hàng đã tạo
    */
   createOrderFromBooking: async (bookingId) => {
-    return api.post(`/api/v1/bookings/${bookingId}/create-order`);
+    try {
+      return await api.post(`/api/bookings/${bookingId}/create-order`);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.post(`/api/v1/bookings/${bookingId}/create-order`);
+      }
+      throw error;
+    }
   },
   
   /**
@@ -91,7 +129,14 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đơn hàng
    */
   getBookingOrder: async (bookingId) => {
-    return api.get(`/api/v1/bookings/${bookingId}/order`);
+    try {
+      return await api.get(`/api/bookings/${bookingId}/order`);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.get(`/api/v1/bookings/${bookingId}/order`);
+      }
+      throw error;
+    }
   },
   
   /**
@@ -99,7 +144,14 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đặt bàn
    */
   getMyBookings: async () => {
-    return api.get('/api/v1/bookings/my-bookings');
+    try {
+      return await api.get('/api/bookings/my-bookings');
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.get('/api/v1/bookings/my-bookings');
+      }
+      throw error;
+    }
   },
   
   /**
@@ -109,7 +161,14 @@ const bookingService = {
    * @returns {Promise} Promise với dữ liệu đặt bàn đã gán bàn
    */
   assignTableToBooking: async (bookingId, tableId) => {
-    return api.put(`/api/v1/bookings/${bookingId}/assign-table`, { tableId });
+    try {
+      return await api.put(`/api/bookings/${bookingId}/assign-table`, { tableId });
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        return api.put(`/api/v1/bookings/${bookingId}/assign-table`, { tableId });
+      }
+      throw error;
+    }
   },
   
   /**

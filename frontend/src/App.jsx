@@ -21,6 +21,7 @@ import ReportsPage from './pages/admin/ReportsPage';
 import PromotionManagementPage from './pages/admin/PromotionManagementPage';
 import OrderManagementPage from './pages/admin/OrderManagementPage';
 import BookingManagementPage from './pages/admin/BookingManagementPage';
+import BookingDetailPage from './pages/admin/BookingDetailPage';
 import TableManagementPage from './pages/admin/TableManagementPage';
 
 // Waiter Pages
@@ -97,6 +98,7 @@ function App() {
               <Route path="promotions" element={<PromotionManagementPage />} />
               <Route path="orders" element={<OrderManagementPage />} />
               <Route path="bookings" element={<BookingManagementPage />} />
+              <Route path="bookings/:id" element={<BookingDetailPage />} />
               {/* Add more admin routes here */}
             </Route>
           </Route>

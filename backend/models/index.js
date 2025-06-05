@@ -4,6 +4,7 @@ const Review = require('./Review');
 const Booking = require('./Booking');
 const Table = require('./Table');
 const Order = require('./Order');
+const Notification = require('./Notification');
 
 module.exports = {
   User,
@@ -11,5 +12,6 @@ module.exports = {
   Review,
   Booking,
   Table,
-  Order
+  Order,
+  Notification
 }; 

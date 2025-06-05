@@ -1,4 +1,5 @@
-import { FaBell, FaUser } from 'react-icons/fa';
+import { FaUser } from 'react-icons/fa';
+import NotificationCenter from '../common/NotificationCenter';
 
 const AdminHeader = () => {
   return (
@@ -7,25 +8,7 @@ const AdminHeader = () => {
         <div className="d-flex justify-content-between align-items-center">
           <h1 className="h3 mb-0">Dashboard</h1>
           <div className="d-flex align-items-center gap-3">
-            <div className="dropdown">
-              <button 
-                className="btn position-relative" 
-                type="button" 
-                id="notificationsDropdown" 
-                data-bs-toggle="dropdown" 
-                aria-expanded="false"
-              >
-                <FaBell />
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  3
-                </span>
-              </button>
-              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                <li><a className="dropdown-item" href="#">New order #1234</a></li>
-                <li><a className="dropdown-item" href="#">New order #1235</a></li>
-                <li><a className="dropdown-item" href="#">New review added</a></li>
-              </ul>
-            </div>
+            <NotificationCenter />
             <div className="dropdown">
               <button 
                 className="btn d-flex align-items-center gap-2" 

@@ -1,8 +1,10 @@
 const Booking = require('../models/Booking');
 const Table = require('../models/Table');
+const { User, Notification } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const mongoose = require('mongoose');
+const socketService = require('../services/socketService');
 
 // Utility function to check if restaurant is open at the given time
 const isRestaurantOpenAt = (time) => {
@@ -61,6 +63,73 @@ exports.createBooking = catchAsync(async (req, res, next) => {
   }
 
   const booking = await Booking.create(bookingData);
+
+  // Create notifications for managers and waiters
+  try {
+    // Find all managers and waiters
+    const staffUsers = await User.find({ 
+      role: { $in: ['manager', 'waiter'] } 
+    });
+
+    // Format date for display
+    const bookingDate = new Date(date);
+    const formattedDate = bookingDate.toLocaleDateString('vi-VN');
+    
+    // Create notification content
+    const notificationContent = `Đặt bàn mới: ${customerName} - ${formattedDate} ${time} - ${numberOfGuests} khách`;
+    
+    // Create notifications in database for each staff user
+    const notificationPromises = staffUsers.map(user => {
+      return Notification.create({
+        recipient: user._id,
+        type: 'new_booking',
+        content: notificationContent,
+        relatedResource: {
+          type: 'booking',
+          id: booking._id
+        },
+        isRead: false
+      });
+    });
+    
+    await Promise.all(notificationPromises);
+    
+    // Send real-time notifications via socket
+    const bookingData = {
+      _id: booking._id,
+      customerName,
+      date: formattedDate,
+      time,
+      numberOfGuests,
+      createdAt: new Date()
+    };
+    
+    // Emit to managers and waiters
+    await socketService.emitToRole('manager', 'new_booking', {
+      notification: notificationContent,
+      booking: bookingData,
+      sound: true // Flag to play sound
+    });
+    
+    await socketService.emitToRole('waiter', 'new_booking', {
+      notification: notificationContent,
+      booking: bookingData,
+      sound: true // Flag to play sound
+    });
+    
+    // Broadcast to all admins
+    socketService.broadcast('admin_notification', {
+      type: 'new_booking',
+      message: notificationContent,
+      booking: bookingData,
+      sound: true
+    });
+    
+    console.log('Booking notifications sent successfully');
+  } catch (error) {
+    console.error('Error sending booking notifications:', error);
+    // Don't fail the request if notifications fail
+  }
 
   res.status(201).json({
     status: 'success',
@@ -282,7 +351,7 @@ exports.cancelBookingByCustomer = catchAsync(async (req, res, next) => {
   }
 
   // Check if the booking is in a status that can be cancelled
-  if (!['pending_confirmation', 'confirmed'].includes(booking.status)) {
+  if (!['pending', 'confirmed'].includes(booking.status)) {
     return next(new AppError('Đặt chỗ này không thể hủy do đã có trạng thái khác', 400));
   }
 
