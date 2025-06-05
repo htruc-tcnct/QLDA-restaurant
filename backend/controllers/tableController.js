@@ -298,9 +298,26 @@ exports.clearTable = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Update table status
-  table.status = "available";
+  // Clear the current order
   table.currentOrderId = null;
+
+  // Check if there are any upcoming bookings for this table
+  const now = new Date();
+  const currentDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const upcomingBookings = await Booking.find({
+    tableAssigned: table._id,
+    date: { $gte: new Date(currentDate) },
+    status: { $in: ["pending", "confirmed"] },
+  }).sort({ date: 1, time: 1 });
+
+  if (upcomingBookings.length > 0) {
+    // If we have upcoming bookings for this table, keep it as reserved
+    table.status = "reserved";
+  } else {
+    // If no upcoming bookings, make it available
+    table.status = "available";
+  }
 
   await table.save();
 
