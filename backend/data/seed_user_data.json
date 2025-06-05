@@ -8,22 +8,6 @@
     "phoneNumber": "0912345678"
   },
   {
-    "fullName": "Đầu Bếp Trưởng",
-    "email": "chef@example.com",
-    "username": "chef01",
-    "password": "123456",
-    "role": "chef",
-    "phoneNumber": "0912345679"
-  },
-  {
-    "fullName": "Đầu Bếp Phụ",
-    "email": "chef_assistant@example.com",
-    "username": "chef02",
-    "password": "123456",
-    "role": "chef",
-    "phoneNumber": "0912345680"
-  },
-  {
     "fullName": "Phục Vụ A",
     "email": "waiter_a@example.com",
     "username": "waiter_a",

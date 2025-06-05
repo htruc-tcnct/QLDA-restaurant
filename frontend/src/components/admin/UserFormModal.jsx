@@ -360,7 +360,6 @@ const UserFormModal = ({ show, handleClose, mode, user, onUserSaved }) => {
                   <option value="customer">Customer</option>
                   <option value="staff">Staff</option>
                   <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
                 </Form.Select>
               </Form.Group>
               

@@ -18,7 +18,7 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
 // Public routes
 router.route('/')
   .get(getMenuItems)
-  .post(protect, authorize('admin', 'manager', 'chef'), createMenuItem);
+  .post(protect, authorize('admin', 'manager'), createMenuItem);
 
 // Get categories - phải đặt trước route có tham số /:id
 router.route('/categories/list')
@@ -26,16 +26,16 @@ router.route('/categories/list')
 
 router.route('/:id')
   .get(getMenuItem)
-  .put(protect, authorize('admin', 'manager', 'chef'), updateMenuItem)
+  .put(protect, authorize('admin', 'manager'), updateMenuItem)
   .delete(protect, authorize('admin', 'manager'), deleteMenuItem);
 
 // Toggle availability route
 router.route('/:id/toggle')
-  .patch(protect, authorize('admin', 'manager', 'chef'), toggleMenuItem);
+  .patch(protect, authorize('admin', 'manager'), toggleMenuItem);
 
 // Review routes
 router.route('/:menuItemId/reviews')
   .get(getMenuItemReviews)
-  .post(protect, createReview);
+  .post(protect, authorize('customer'), createReview);
 
 module.exports = router; 

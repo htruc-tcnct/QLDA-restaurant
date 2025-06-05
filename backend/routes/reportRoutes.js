@@ -4,8 +4,8 @@ const reportController = require('../controllers/reportController');
 
 const router = express.Router();
 
-// Protect all routes and restrict to manager role
-router.use(protect, authorize('manager'));
+// Protect all routes and restrict to admin or manager role
+router.use(protect, authorize('admin', 'manager'));
 
 // Sales summary
 router.get('/sales-summary', reportController.getSalesSummary);

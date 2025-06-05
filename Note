@@ -1,0 +1,2 @@
+Có 3 actor: Manager Staff và Customer
+Tuy nhiên trong code thì có 5 actor trong đó Admin = Manager, Staff= Waiter tất cả quyền của 2 cặp này cho giống nhau hết

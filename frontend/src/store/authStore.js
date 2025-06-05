@@ -52,21 +52,21 @@ const useAuthStore = create((set, get) => ({
       const response = await api.post('/api/auth/login', credentials);
       console.log('Login response:', response.data);
       
-      const { token, ...user } = response.data;
+      const { token, ...userData } = response.data;
       
       // Save to localStorage
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(userData));
       
       set({ 
-        user, 
+        user: userData,
         token, 
         isAuthenticated: true, 
         isLoading: false 
       });
       
       toast.success('Login successful!');
-      return true;
+      return userData;
     } catch (error) {
       console.error('Login error details:', error);
       
@@ -80,7 +80,7 @@ const useAuthStore = create((set, get) => ({
       });
       
       toast.error(`Login failed: ${message}`);
-      return false;
+      return null;
     }
   },
 

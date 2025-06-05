@@ -3,10 +3,11 @@ const Table = require('../models/Table');
 const MenuItem = require('../models/MenuItem');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const User = require('../models/User');
 
 // @desc    Create new order
-// @route   POST /api/v1/orders
-// @access  Private (waiter, manager)
+// @route   POST /api/orders
+// @access  Private (staff, waiter, admin, manager)
 exports.createOrder = catchAsync(async (req, res, next) => {
   const { tableId, items, orderType, orderNotes } = req.body;
   
@@ -71,7 +72,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   // Create the order
   const order = await Order.create({
     table: tableId || null,
-    waiter: req.user._id, // The logged-in user (waiter/manager)
+    waiter: req.user._id, // The logged-in user (staff/admin)
     items: orderItems,
     subTotal,
     taxRate,
@@ -98,9 +99,9 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Get all orders
-// @route   GET /api/v1/orders
-// @access  Private (waiter, manager)
+// @desc    Get all orders (for admin, manager, staff, waiter with filters)
+// @route   GET /api/orders
+// @access  Private (staff, waiter, admin, manager)
 exports.getAllOrders = catchAsync(async (req, res, next) => {
   // Build filter object
   const filter = {};
@@ -120,7 +121,7 @@ exports.getAllOrders = catchAsync(async (req, res, next) => {
     filter.table = req.query.tableId;
   }
   
-  // Filter by waiter
+  // Filter by waiter (staff/waiter member)
   if (req.query.waiterId) {
     filter.waiter = req.query.waiterId;
   }
@@ -139,8 +140,7 @@ exports.getAllOrders = catchAsync(async (req, res, next) => {
   const skip = (page - 1) * limit;
   
   // Execute query with pagination
-  // const orders = await Order.find({});
-    const orders = await Order.find(filter)
+  const orders = await Order.find(filter)
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
@@ -167,8 +167,8 @@ exports.getAllOrders = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Get current order for a table
-// @route   GET /api/v1/orders/table/:tableId/current
-// @access  Private (waiter, manager)
+// @route   GET /api/orders/table/:tableId/current
+// @access  Private (staff, admin)
 exports.getCurrentTableOrder = catchAsync(async (req, res, next) => {
   const { tableId } = req.params;
   
@@ -208,14 +208,14 @@ exports.getCurrentTableOrder = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Get order by ID
-// @route   GET /api/v1/orders/:id
-// @access  Private (waiter, manager)
+// @route   GET /api/orders/:id
+// @access  Private (staff, waiter, admin, manager)
 exports.getOrder = catchAsync(async (req, res, next) => {
   const order = await Order.findById(req.params.id)
     .populate([
       { path: 'table', select: 'name location' },
       { path: 'waiter', select: 'fullName' },
-      { path: 'customer', select: 'fullName email' },
+      { path: 'customer', select: 'fullName email phoneNumber' },
       { path: 'items.menuItem', select: 'name category price imageUrls' }
     ]);
   
@@ -232,8 +232,8 @@ exports.getOrder = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Add item to order
-// @route   PUT /api/v1/orders/:id/add-item
-// @access  Private (waiter, manager)
+// @route   POST /api/orders/:id/items
+// @access  Private (staff, waiter, admin, manager)
 exports.addItemToOrder = catchAsync(async (req, res, next) => {
   const { menuItemId, quantity, notes, status } = req.body;
   
@@ -301,9 +301,9 @@ exports.addItemToOrder = catchAsync(async (req, res, next) => {
   });
 });
 
-// @desc    Update item in order
-// @route   PUT /api/v1/orders/:id/update-item/:orderItemId
-// @access  Private (waiter, manager)
+// @desc    Update order item
+// @route   PUT /api/orders/:id/items/:itemId
+// @access  Private (staff, waiter, admin, manager)
 exports.updateOrderItem = catchAsync(async (req, res, next) => {
   const { quantity, notes } = req.body;
   const { id, orderItemId } = req.params;
@@ -358,8 +358,8 @@ exports.updateOrderItem = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Remove item from order
-// @route   DELETE /api/v1/orders/:id/remove-item/:orderItemId
-// @access  Private (waiter, manager)
+// @route   DELETE /api/orders/:id/items/:itemId
+// @access  Private (staff, waiter, admin, manager)
 exports.removeOrderItem = catchAsync(async (req, res, next) => {
   const { id, orderItemId } = req.params;
   
@@ -412,8 +412,8 @@ exports.removeOrderItem = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Update order status
-// @route   PUT /api/v1/orders/:id/status
-// @access  Private (waiter, manager)
+// @route   PUT /api/orders/:id/status
+// @access  Private (staff, waiter, admin, manager)
 exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   const { status, itemsStatus } = req.body;
   
@@ -489,8 +489,8 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Apply discount to order
-// @route   PUT /api/v1/orders/:id/apply-discount
-// @access  Private (waiter, manager)
+// @route   PUT /api/orders/:id/discount
+// @access  Private (admin, manager, staff, waiter with restrictions)
 exports.applyDiscount = catchAsync(async (req, res, next) => {
   const { discountAmount, discountPercentage } = req.body;
   
@@ -518,13 +518,13 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
     return next(new AppError('Không thể áp dụng giảm giá cho đơn hàng này', 400));
   }
   
-  // Check if user is manager if discount is large
+  // Check if user is admin or manager if discount is large
   const isLargeDiscount = 
     (discountPercentage && discountPercentage > 15) || 
     (discountAmount && discountAmount > order.subTotal * 0.15);
   
-  if (isLargeDiscount && req.user.role !== 'manager') {
-    return next(new AppError('Giảm giá lớn chỉ có thể được áp dụng bởi quản lý', 403));
+  if (isLargeDiscount && !(req.user.role === 'admin' || req.user.role === 'manager')) {
+    return next(new AppError('Giảm giá lớn chỉ có thể được áp dụng bởi quản lý (admin hoặc manager)', 403));
   }
   
   // Apply the discount
@@ -558,8 +558,8 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Process order checkout/payment
-// @route   POST /api/v1/orders/:id/checkout
-// @access  Private (waiter, manager)
+// @route   POST /api/orders/:id/checkout
+// @access  Private (staff, waiter, admin, manager)
 exports.checkoutOrder = catchAsync(async (req, res, next) => {
   const { paymentMethod } = req.body;
   
@@ -613,8 +613,8 @@ exports.checkoutOrder = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Update item status in order
-// @route   PUT /api/v1/orders/:id/update-item-status/:orderItemId
-// @access  Private (waiter, manager)
+// @route   PUT /api/orders/:id/update-item-status/:orderItemId
+// @access  Private (staff, waiter, admin, manager)
 exports.updateOrderItemStatus = catchAsync(async (req, res, next) => {
   const { status } = req.body;
   const { id, orderItemId } = req.params;
@@ -678,8 +678,8 @@ exports.updateOrderItemStatus = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Delete order
-// @route   DELETE /api/v1/orders/:id
-// @access  Private (manager)
+// @route   DELETE /api/orders/:id
+// @access  Private (admin, manager)
 exports.deleteOrder = catchAsync(async (req, res, next) => {
   const order = await Order.findById(req.params.id);
   
@@ -710,8 +710,8 @@ exports.deleteOrder = catchAsync(async (req, res, next) => {
 });
 
 // @desc    Generate order receipt
-// @route   GET /api/v1/orders/:id/receipt
-// @access  Private (waiter, manager)
+// @route   GET /api/orders/:id/receipt
+// @access  Private (staff, waiter, admin, manager)
 exports.generateReceipt = catchAsync(async (req, res, next) => {
   const order = await Order.findById(req.params.id)
     .populate([
@@ -752,6 +752,39 @@ exports.generateReceipt = catchAsync(async (req, res, next) => {
     status: 'success',
     data: {
       receipt: receiptData
+    }
+  });
+});
+
+// @desc    Assign waiter to order
+// @route   PUT /api/orders/:id/assign-waiter
+// @access  Private (admin, manager, staff, waiter)
+exports.assignWaiterToOrder = catchAsync(async (req, res, next) => {
+  const { waiterId } = req.body;
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  // Check if the waiterId corresponds to a valid staff, waiter, admin or manager user
+  const userToAssign = await User.findOne({ _id: waiterId, role: { $in: ['staff', 'waiter', 'admin', 'manager'] } });
+  if (!userToAssign) {
+    return res.status(400).json({ message: 'Invalid user ID or user does not have an appropriate role (staff, waiter, admin, manager)' });
+  }
+
+  order.waiter = waiterId; // waiterId is the ID of a staff, waiter, admin or manager
+  const updatedOrder = await order.save();
+
+  const populatedOrder = await Order.findById(updatedOrder._id)
+      .populate('table', 'name location')
+      .populate('waiter', 'fullName') // waiter field now refers to staff/waiter/admin/manager
+      .populate('items.menuItem', 'name price category');
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      order: populatedOrder
     }
   });
 }); 

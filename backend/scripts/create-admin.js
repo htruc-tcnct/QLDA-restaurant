@@ -21,18 +21,18 @@ async function createAdmin() {
 
     if (adminExists) {
       // Cập nhật vai trò nếu người dùng đã tồn tại
-      adminExists.role = 'manager';
+      adminExists.role = 'admin';
       await adminExists.save();
       console.log('Admin user updated successfully!');
     } else {
       // Tạo người dùng admin mới
-      const hashedPassword = await bcrypt.hash('manager123', 10);
+      const hashedPassword = await bcrypt.hash('admin123', 10);
       const adminUser = new User({
-        username: 'manager',
+        username: 'admin',
         email: 'admin@example.com',
         password: hashedPassword,
         fullName: 'Admin User',
-        role: 'manager',
+        role: 'admin',
         isActive: true
       });
       await adminUser.save();
@@ -47,7 +47,7 @@ async function createAdmin() {
   }
 }
 
-// Cập nhật vai trò của người dùng hiện tại thành manager
+// Cập nhật vai trò của người dùng hiện tại thành admin
 async function updateUserToAdmin(username) {
   try {
     const user = await User.findOne({ username });
@@ -57,9 +57,9 @@ async function updateUserToAdmin(username) {
       process.exit(1);
     }
     
-    user.role = 'manager';
+    user.role = 'admin';
     await user.save();
-    console.log(`User "${username}" has been updated to manager role.`);
+    console.log(`User "${username}" has been updated to admin role.`);
     process.exit(0);
   } catch (error) {
     console.error('Error updating user role:', error);

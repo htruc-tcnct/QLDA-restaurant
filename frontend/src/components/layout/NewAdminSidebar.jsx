@@ -20,13 +20,13 @@ export default function NewAdminSidebar() {
   
   // Define all possible menu items
   const allMenuItems = [
-    { path: '/admin', icon: <FaHome />, label: 'Dashboard', roles: ['admin', 'manager', 'chef', 'staff', 'waiter'] },
-    { path: '/admin/menu', icon: <FaUtensils />, label: 'Quản lý thực đơn', roles: ['admin', 'manager', 'chef'] },
+    { path: '/admin', icon: <FaHome />, label: 'Dashboard', roles: ['admin', 'manager', 'staff', 'waiter'] },
+    { path: '/admin/menu', icon: <FaUtensils />, label: 'Quản lý thực đơn', roles: ['admin', 'manager'] },
     { path: '/admin/users', icon: <FaUsers />, label: 'Quản lý người dùng', roles: ['admin', 'manager'] },
-    { path: '/admin/tables', icon: <FaTable />, label: 'Quản lý bàn', roles: ['admin', 'manager', 'waiter'] },
-    { path: '/admin/orders', icon: <FaShoppingCart />, label: 'Quản lý đơn hàng', roles: ['admin', 'manager', 'chef', 'waiter'] },
-    { path: '/admin/bookings', icon: <FaCalendarAlt />, label: 'Quản lý đặt bàn', roles: ['admin', 'manager', 'waiter'] },
-    { path: '/waiter/pos', icon: <FaCashRegister />, label: 'Màn hình POS', roles: ['admin', 'manager', 'waiter'] },
+    { path: '/admin/tables', icon: <FaTable />, label: 'Quản lý bàn', roles: ['admin', 'manager', 'staff', 'waiter'] },
+    { path: '/admin/orders', icon: <FaShoppingCart />, label: 'Quản lý đơn hàng', roles: ['admin', 'manager', 'staff', 'waiter'] },
+    { path: '/admin/bookings', icon: <FaCalendarAlt />, label: 'Quản lý đặt bàn', roles: ['admin', 'manager', 'staff', 'waiter'] },
+    { path: '/admin/pos', icon: <FaCashRegister />, label: 'Màn hình POS', roles: ['admin', 'manager'] },
     { path: '/admin/reports', icon: <FaChartLine />, label: 'Báo cáo & Thống kê', roles: ['admin', 'manager'] },
     { path: '/admin/promotions', icon: <FaTags />, label: 'Quản lý khuyến mãi', roles: ['admin', 'manager'] },
     { path: '/admin/settings', icon: <FaCog />, label: 'Cài đặt', roles: ['admin', 'manager'] },

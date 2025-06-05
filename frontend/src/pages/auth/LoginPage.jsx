@@ -84,9 +84,16 @@ const LoginPage = () => {
     }
     
     console.log('Submitting login form with data:', formData);
-    const success = await login(formData);
-    if (success) {
-      navigate('/');
+    const user = await login(formData);
+    if (user) {
+      // Role-based redirection
+      if (user.role === 'admin' || user.role === 'manager') {
+        navigate('/admin');
+      } else if (user.role === 'staff' || user.role === 'waiter') {
+        navigate('/staff/pos');
+      } else {
+        navigate('/');
+      }
     }
   };
   
@@ -209,18 +216,6 @@ const LoginPage = () => {
                       )}
                     </button>
                   </div>
-                  
-                  {/* Debug Info in Development */}
-                  {process.env.NODE_ENV !== 'production' && (
-                    <div className="mt-3 p-2 border rounded bg-light">
-                      <small className="text-muted">Debug Info:</small>
-                      <pre className="mb-0 small">
-                        API Status: {apiStatus || 'unknown'}
-                        <br />
-                        Form Data: {JSON.stringify(formData, null, 2)}
-                      </pre>
-                    </div>
-                  )}
                 </form>
               </div>
               

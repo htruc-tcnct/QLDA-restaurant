@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import { useEffect } from 'react';
 import CustomerLayout from './layouts/CustomerLayout';
 import AdminLayout from './layouts/AdminLayout';
+import PosLayout from './layouts/PosLayout';
 import ProtectedRoute from './components/routes/ProtectedRoute';
 import RoleBasedRoute from './components/routes/RoleBasedRoute';
 
@@ -87,7 +88,7 @@ function App() {
 
         {/* Admin Routes - Protected and Role-Based */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<RoleBasedRoute allowedRoles={['manager', 'admin', 'chef', 'staff']} />}>
+          <Route element={<RoleBasedRoute allowedRoles={['admin', 'manager']} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<UserManagementPage />} />
@@ -97,15 +98,16 @@ function App() {
               <Route path="promotions" element={<PromotionManagementPage />} />
               <Route path="orders" element={<OrderManagementPage />} />
               <Route path="bookings" element={<BookingManagementPage />} />
+              <Route path="pos" element={<PointOfSalePage />} />
               {/* Add more admin routes here */}
             </Route>
           </Route>
         </Route>
 
-        {/* Waiter/Staff Routes - Protected and Role-Based */}
+        {/* Staff/POS Routes - Protected and Role-Based */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<RoleBasedRoute allowedRoles={['waiter', 'manager', 'admin']} />}>
-            <Route path="/waiter" element={<AdminLayout />}>
+          <Route element={<RoleBasedRoute allowedRoles={['staff', 'waiter', 'admin', 'manager']} />}>
+            <Route path="/staff" element={<PosLayout />}>
               <Route path="pos" element={<PointOfSalePage />} />
             </Route>
           </Route>

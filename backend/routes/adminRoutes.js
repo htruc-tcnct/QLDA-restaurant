@@ -12,8 +12,10 @@ const {
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
-// Apply auth middleware to all routes
+// Protect all admin routes
 router.use(protect);
+
+// Authorize only admin and manager
 router.use(authorize('admin', 'manager'));
 
 // User management routes

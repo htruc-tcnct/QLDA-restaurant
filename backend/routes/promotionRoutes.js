@@ -4,11 +4,11 @@ const promotionController = require('../controllers/promotionController');
 
 const router = express.Router();
 
-// Public route to apply promo code (for customers and waiters)
+// Public route to apply promo code (for customers, staff, waiter)
 router.post('/apply-code', protect, promotionController.applyPromoCode);
 
-// All other routes require manager access
-router.use(protect, authorize('manager'));
+// All other routes require admin or manager access
+router.use(protect, authorize('admin', 'manager'));
 
 // CRUD routes
 router.route('/')

@@ -21,37 +21,37 @@ router.get('/available', getAvailableTables);
 router.use(protect);
 
 // Check table availability
-router.get('/check-availability', authorize('waiter', 'manager'), checkTableAvailability);
+router.get('/check-availability', authorize('staff', 'waiter', 'admin', 'manager'), checkTableAvailability);
 
 // Routes with specific permissions
 router
   .route('/')
-  .get(authorize('waiter', 'manager', 'chef'), getAllTables)
-  .post(authorize('manager'), createTable);
+  .get(authorize('staff', 'waiter', 'admin', 'manager'), getAllTables)
+  .post(authorize('admin', 'manager'), createTable);
 
 router
   .route('/:id')
-  .get(authorize('waiter', 'manager', 'chef'), getTable)
-  .put(authorize('manager'), updateTable)
-  .delete(authorize('manager'), deleteTable);
+  .get(authorize('staff', 'waiter', 'admin', 'manager'), getTable)
+  .put(authorize('admin', 'manager'), updateTable)
+  .delete(authorize('admin', 'manager'), deleteTable);
 
 router
   .route('/:id/status')
-  .put(authorize('waiter', 'manager'), updateTableStatus);
+  .put(authorize('staff', 'waiter', 'admin', 'manager'), updateTableStatus);
 
 // Reserve table route
 router
   .route('/:id/reserve')
-  .put(authorize('waiter', 'manager'), markTableAsReserved);
+  .put(authorize('staff', 'waiter', 'admin', 'manager'), markTableAsReserved);
 
 // Get upcoming reservations for a table
 router
   .route('/:id/upcoming-reservations')
-  .get(authorize('waiter', 'manager'), getUpcomingReservations);
+  .get(authorize('staff', 'waiter', 'admin', 'manager'), getUpcomingReservations);
 
 // Clear table route
 router
   .route('/:id/clear')
-  .put(authorize('waiter', 'manager'), clearTable);
+  .put(authorize('staff', 'waiter', 'admin', 'manager'), clearTable);
 
 module.exports = router; 

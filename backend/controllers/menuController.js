@@ -95,7 +95,7 @@ const getMenuItem = async (req, res) => {
 
 // @desc    Create menu item
 // @route   POST /api/menu-items
-// @access  Private/Admin/Manager/Chef
+// @access  Private/Admin
 const createMenuItem = async (req, res) => {
   try {
     const { 
@@ -143,7 +143,7 @@ const createMenuItem = async (req, res) => {
 
 // @desc    Update menu item
 // @route   PUT /api/menu-items/:id
-// @access  Private/Admin/Manager/Chef
+// @access  Private/Admin
 const updateMenuItem = async (req, res) => {
   try {
     const { 
@@ -199,7 +199,7 @@ const updateMenuItem = async (req, res) => {
 
 // @desc    Delete menu item
 // @route   DELETE /api/menu-items/:id
-// @access  Private/Admin/Manager
+// @access  Private/Admin
 const deleteMenuItem = async (req, res) => {
   try {
     const menuItem = await MenuItem.findById(req.params.id);
@@ -223,7 +223,7 @@ const deleteMenuItem = async (req, res) => {
 
 // @desc    Toggle menu item availability
 // @route   PATCH /api/menu-items/:id/toggle
-// @access  Private/Admin/Manager/Chef
+// @access  Private/Admin
 const toggleMenuItem = async (req, res) => {
   try {
     const menuItem = await MenuItem.findById(req.params.id);

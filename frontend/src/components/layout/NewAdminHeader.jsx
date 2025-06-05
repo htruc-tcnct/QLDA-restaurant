@@ -1,6 +1,16 @@
 import { FaBell, FaUser } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/authStore'; // Corrected path
 
 export default function NewAdminHeader() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <header className="bg-white shadow-sm py-3">
       <div className="container-fluid">
@@ -26,24 +36,30 @@ export default function NewAdminHeader() {
                 <li><a className="dropdown-item" href="#">New review added</a></li>
               </ul>
             </div>
-            <div className="dropdown">
-              <button 
-                className="btn d-flex align-items-center gap-2" 
-                type="button" 
-                id="userDropdown" 
-                data-bs-toggle="dropdown" 
-                aria-expanded="false"
-              >
-                <FaUser />
-                <span>Admin User</span>
-              </button>
-              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li><a className="dropdown-item" href="#">Profile</a></li>
-                <li><a className="dropdown-item" href="#">Settings</a></li>
-                <li><hr className="dropdown-divider" /></li>
-                <li><a className="dropdown-item" href="#">Logout</a></li>
-              </ul>
-            </div>
+            {user && (
+              <div className="dropdown">
+                <button 
+                  className="btn d-flex align-items-center gap-2" 
+                  type="button" 
+                  id="userDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                >
+                  <FaUser />
+                  <span>{user.fullName || user.username || 'User'}</span>
+                </button>
+                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                  <li><a className="dropdown-item" href="#">Profile</a></li>
+                  <li><a className="dropdown-item" href="#">Settings</a></li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li>
+                    <button className="dropdown-item" type="button" onClick={handleLogout}>
+                      Logout
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
