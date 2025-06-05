@@ -9,7 +9,13 @@ import {
   Spinner,
   Alert,
 } from "react-bootstrap";
-import { FaCalendarCheck, FaUtensils, FaUsers, FaClock } from "react-icons/fa";
+import {
+  FaCalendarCheck,
+  FaUtensils,
+  FaUsers,
+  FaClock,
+  FaHeart,
+} from "react-icons/fa";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -35,7 +41,10 @@ const BookingPage = () => {
 
   const [availableTimes, setAvailableTimes] = useState([]);
   const [recommendedItems, setRecommendedItems] = useState([]);
+  const [favoriteItems, setFavoriteItems] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,6 +78,27 @@ const BookingPage = () => {
 
     fetchRecommendedItems();
   }, []);
+
+  // Fetch favorite menu items
+  useEffect(() => {
+    const fetchFavoriteItems = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        setLoadingFavorites(true);
+        const response = await api.get("/api/favorites");
+        // The favorites data contains menuItem objects inside each favorite item
+        const favoriteMenuItems = response.data.map((fav) => fav.menuItem);
+        setFavoriteItems(favoriteMenuItems || []);
+      } catch (error) {
+        console.error("Error fetching favorite items:", error);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    fetchFavoriteItems();
+  }, [isAuthenticated]);
 
   // Generate available time slots (this would ideally come from the backend)
   useEffect(() => {
@@ -208,6 +238,21 @@ const BookingPage = () => {
       setSubmitting(false);
     }
   };
+
+  // Filter menu items based on search term
+  const filteredRecommendedItems = recommendedItems.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.description &&
+        item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const filteredFavoriteItems = favoriteItems.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.description &&
+        item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="py-5">
@@ -400,7 +445,18 @@ const BookingPage = () => {
                     <p className="text-muted mb-3">
                       Chọn món ăn bạn muốn đặt trước:
                     </p>
-                    {recommendedItems.map((item) => {
+
+                    {/* Search bar for recommended items */}
+                    <Form.Group className="mb-3">
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm món ăn..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </Form.Group>
+
+                    {filteredRecommendedItems.map((item) => {
                       const isSelected = formData.preOrderedItems.some(
                         (orderItem) => orderItem.menuItem === item._id
                       );
@@ -505,6 +561,152 @@ const BookingPage = () => {
                 )}
               </Card.Body>
             </Card>
+
+            {isAuthenticated && (
+              <Card className="shadow-sm mb-4">
+                <Card.Header className="bg-danger text-white">
+                  <h4 className="mb-0">
+                    <FaHeart className="me-2" />
+                    Món Ăn Yêu Thích Của Bạn
+                  </h4>
+                </Card.Header>
+                <Card.Body>
+                  {loadingFavorites ? (
+                    <div className="text-center py-4">
+                      <Spinner animation="border" variant="danger" />
+                      <p className="mt-2">Đang tải món ăn yêu thích...</p>
+                    </div>
+                  ) : favoriteItems.length === 0 ? (
+                    <p className="text-center py-3">
+                      Bạn chưa có món ăn yêu thích nào.
+                    </p>
+                  ) : (
+                    <div>
+                      <p className="text-muted mb-3">
+                        Chọn từ danh sách món ăn yêu thích của bạn:
+                      </p>
+
+                      {/* Search bar for favorite items */}
+                      <Form.Group className="mb-3">
+                        <Form.Control
+                          type="text"
+                          placeholder="Tìm món ăn yêu thích..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </Form.Group>
+
+                      {filteredFavoriteItems.map((item) => {
+                        const isSelected = formData.preOrderedItems.some(
+                          (orderItem) => orderItem.menuItem === item._id
+                        );
+                        const orderItem = formData.preOrderedItems.find(
+                          (orderItem) => orderItem.menuItem === item._id
+                        );
+
+                        return (
+                          <Card
+                            key={item._id}
+                            className={`mb-3 ${
+                              isSelected ? "border-primary" : ""
+                            }`}
+                          >
+                            <Row className="g-0">
+                              <Col xs={4}>
+                                <div
+                                  style={{ height: "100%", minHeight: "80px" }}
+                                >
+                                  <img
+                                    src={
+                                      item.imageUrls?.[0] ||
+                                      "https://via.placeholder.com/150?text=No+Image"
+                                    }
+                                    alt={item.name}
+                                    className="img-fluid rounded-start"
+                                    style={{
+                                      height: "100%",
+                                      objectFit: "cover",
+                                    }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src =
+                                        "https://via.placeholder.com/150?text=No+Image";
+                                    }}
+                                  />
+                                </div>
+                              </Col>
+                              <Col xs={8}>
+                                <Card.Body className="py-2">
+                                  <div className="d-flex justify-content-between align-items-start">
+                                    <Card.Title className="h6 mb-1">
+                                      {item.name}
+                                    </Card.Title>
+                                    <div className="text-primary fw-bold">
+                                      {formatCurrency(item.price)}
+                                    </div>
+                                  </div>
+                                  <Card.Text className="small text-muted mb-2">
+                                    {item.description?.substring(0, 60)}
+                                    {item.description?.length > 60 ? "..." : ""}
+                                  </Card.Text>
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <Button
+                                      variant={
+                                        isSelected
+                                          ? "primary"
+                                          : "outline-primary"
+                                      }
+                                      size="sm"
+                                      onClick={() =>
+                                        handlePreOrderToggle(item._id)
+                                      }
+                                    >
+                                      {isSelected ? "Đã chọn" : "Chọn món"}
+                                    </Button>
+
+                                    {isSelected && (
+                                      <Form.Control
+                                        type="number"
+                                        min="1"
+                                        value={orderItem.quantity}
+                                        onChange={(e) =>
+                                          handlePreOrderQuantityChange(
+                                            item._id,
+                                            e.target.value
+                                          )
+                                        }
+                                        style={{ width: "60px" }}
+                                        size="sm"
+                                      />
+                                    )}
+                                  </div>
+
+                                  {isSelected && (
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Ghi chú cho món này"
+                                      value={orderItem.notes}
+                                      onChange={(e) =>
+                                        handlePreOrderNotesChange(
+                                          item._id,
+                                          e.target.value
+                                        )
+                                      }
+                                      className="mt-2"
+                                      size="sm"
+                                    />
+                                  )}
+                                </Card.Body>
+                              </Col>
+                            </Row>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            )}
 
             <Card className="shadow-sm">
               <Card.Header className="bg-info text-white">
