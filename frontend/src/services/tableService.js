@@ -1,27 +1,27 @@
-import api from './api';
+import api from "./api";
 
 // Get all tables
 export const getAllTables = async (filters = {}) => {
-  let queryString = '';
-  
+  let queryString = "";
+
   if (filters.status) {
     queryString += `status=${filters.status}&`;
   }
-  
+
   if (filters.location) {
     queryString += `location=${filters.location}&`;
   }
-  
+
   if (filters.capacity) {
     queryString += `capacity=${filters.capacity}&`;
   }
-  
+
   // Add dateTime filter if provided to check for bookings
   if (filters.dateTime) {
     queryString += `dateTime=${filters.dateTime}&`;
   }
-  
-  const url = `/api/v1/tables${queryString ? '?' + queryString : ''}`;
+
+  const url = `/api/v1/tables${queryString ? "?" + queryString : ""}`;
   return await api.get(url);
 };
 
@@ -32,7 +32,7 @@ export const getTableById = async (id) => {
 
 // Create new table
 export const createTable = async (tableData) => {
-  return await api.post('/api/v1/tables', tableData);
+  return await api.post("/api/v1/tables", tableData);
 };
 
 // Update table
@@ -56,12 +56,16 @@ export const deleteTable = async (id) => {
 
 // Get available tables for booking
 export const getAvailableTablesForBooking = async (dateTime, partySize) => {
-  return await api.get(`/api/v1/tables/available?dateTime=${dateTime}&partySize=${partySize}`);
+  return await api.get(
+    `/api/v1/tables/available?dateTime=${dateTime}&partySize=${partySize}`
+  );
 };
 
 // Check if a table is available at a specific time
 export const checkTableAvailability = async (tableId, dateTime) => {
-  return await api.get(`/api/v1/tables/check-availability?tableId=${tableId}&dateTime=${dateTime}`);
+  return await api.get(
+    `/api/v1/tables/check-availability?tableId=${tableId}&dateTime=${dateTime}`
+  );
 };
 
 // Get all tables with booking information for a specific time
@@ -76,7 +80,7 @@ export const reserveTable = async (id, reservationInfo) => {
 
 // Mark table as occupied
 export const markTableAsOccupied = async (id, orderId = null) => {
-  const data = { status: 'occupied' };
+  const data = { status: "occupied" };
   if (orderId) {
     data.currentOrderId = orderId;
   }
@@ -85,21 +89,26 @@ export const markTableAsOccupied = async (id, orderId = null) => {
 
 // Mark table as available
 export const markTableAsAvailable = async (id) => {
-  return await api.put(`/api/v1/tables/${id}/status`, { status: 'available' });
+  return await api.put(`/api/v1/tables/${id}/status`, { status: "available" });
 };
 
 // Mark table as needs cleaning
 export const markTableAsNeedsCleaning = async (id) => {
-  return await api.put(`/api/v1/tables/${id}/status`, { status: 'needs_cleaning' });
+  return await api.put(`/api/v1/tables/${id}/status`, {
+    status: "needs_cleaning",
+  });
 };
 
 // Mark table as reserved
 export const markTableAsReserved = async (id, bookingId = null) => {
-  const data = { status: 'reserved' };
+  const data = { status: "reserved" };
   if (bookingId) {
     data.bookingId = bookingId;
   }
-  console.log(`Calling markTableAsReserved for table ${id} with booking ${bookingId}`, data);
+  console.log(
+    `Calling markTableAsReserved for table ${id} with booking ${bookingId}`,
+    data
+  );
   return await api.put(`/api/v1/tables/${id}/reserve`, data);
 };
 
@@ -123,5 +132,5 @@ export default {
   markTableAsAvailable,
   markTableAsNeedsCleaning,
   markTableAsReserved,
-  getUpcomingReservations
-}; 
+  getUpcomingReservations,
+};

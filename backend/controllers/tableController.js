@@ -506,10 +506,9 @@ exports.getUpcomingReservations = catchAsync(async (req, res, next) => {
     date: { $gte: new Date(currentDate) },
     status: { $in: ["pending", "confirmed"] },
   }).sort({ date: 1, time: 1 });
-
-  // Filter bookings that are within the next 24 hours (increased from 2 hours for testing)
+  // Filter bookings that are within the next 2 hours
   const upcomingBookings = [];
-  const twentyFourHoursInMs = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const twoHoursInMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
   for (const booking of bookings) {
     // Create a Date object for the booking time
@@ -520,8 +519,8 @@ exports.getUpcomingReservations = catchAsync(async (req, res, next) => {
     // Calculate time difference in milliseconds
     const timeDifferenceMs = bookingDateTime - now;
 
-    // If the booking is in the future and within 24 hours
-    if (timeDifferenceMs > 0 && timeDifferenceMs <= twentyFourHoursInMs) {
+    // If the booking is in the future and within 2 hours
+    if (timeDifferenceMs > 0 && timeDifferenceMs <= twoHoursInMs) {
       // Calculate minutes until the booking
       const minutesUntil = Math.floor(timeDifferenceMs / (60 * 1000));
 
