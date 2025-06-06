@@ -154,7 +154,7 @@ exports.createBooking = catchAsync(async (req, res, next) => {
   // Nếu tìm được bàn phù hợp (trống hoặc đã đặt trước nhưng có thể dùng được)
   if (selectedTable) {
     bookingData.tableAssigned = selectedTable._id;
-    bookingData.status = "confirmed"; // Xác nhận đặt bàn ngay vì đã tìm được bàn
+    bookingData.status = "confirmed"; // confirmed
 
     // Cập nhật trạng thái bàn thành reserved (nếu chưa phải reserved)
     if (selectedTable.status !== "reserved") {

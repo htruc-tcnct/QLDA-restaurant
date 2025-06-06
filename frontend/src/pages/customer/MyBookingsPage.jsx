@@ -133,7 +133,7 @@ const MyBookingsPage = () => {
 
   const canCancelBooking = (booking) => {
     // Only allow cancellation if status is pending or confirmed
-    if (!["pending_confirmation", "confirmed"].includes(booking.status)) {
+    if (!["pending", "confirmed"].includes(booking.status)) {
       return false;
     }
 
@@ -234,7 +234,8 @@ const MyBookingsPage = () => {
                             {booking.tableAssigned.name}
                             {booking.tableAssigned.capacity && (
                               <small className="text-muted ms-1">
-                                (Sức chứa: {booking.tableAssigned.capacity} người)
+                                (Sức chứa: {booking.tableAssigned.capacity}{" "}
+                                người)
                               </small>
                             )}
                           </span>
