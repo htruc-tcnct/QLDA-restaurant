@@ -275,9 +275,10 @@ exports.applyPromoCode = catchAsync(async (req, res, next) => {
     data: {
       promotion: {
         _id: promotion._id,
-        name: promotion.name,
-        type: promotion.type,
-        value: promotion.value,
+        code: promotion.code,
+        description: promotion.description,
+        discountType: promotion.discountType,
+        discountValue: promotion.discountValue,
       },
       discountAmount,
       originalTotal: orderTotal,

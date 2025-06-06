@@ -213,16 +213,16 @@ const BookingPage = () => {
     if (!appliedPromotion) return 0;
 
     let discount = 0;
-    if (appliedPromotion.type === "percentage") {
-      discount = subtotal * (appliedPromotion.value / 100);
+    if (appliedPromotion.discountType === "percentage") {
+      discount = subtotal * (appliedPromotion.discountValue / 100);
       if (
         appliedPromotion.maxDiscountAmount &&
         discount > appliedPromotion.maxDiscountAmount
       ) {
         discount = appliedPromotion.maxDiscountAmount;
       }
-    } else if (appliedPromotion.type === "fixed_amount") {
-      discount = Math.min(appliedPromotion.value, subtotal);
+    } else if (appliedPromotion.discountType === "fixed") {
+      discount = Math.min(appliedPromotion.discountValue, subtotal);
     }
     return discount;
   };

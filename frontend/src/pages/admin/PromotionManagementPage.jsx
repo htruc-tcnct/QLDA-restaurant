@@ -14,10 +14,13 @@ import {
   FaPlus,
   FaEdit,
   FaTrash,
+  FaTrashAlt,
   FaCheck,
   FaTimes,
   FaTags,
   FaFilter,
+  FaToggleOn,
+  FaToggleOff,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import promotionService from "../../services/promotionService";
@@ -54,6 +57,7 @@ const PromotionManagementPage = () => {
     endDate: "",
     usageLimit: "",
     applicableFor: "all",
+    isActive: true,
   });
   const [currentPromotionId, setCurrentPromotionId] = useState(null);
 
@@ -91,9 +95,10 @@ const PromotionManagementPage = () => {
       if (
         response &&
         response.data &&
-        Array.isArray(response.data.promotions)
+        response.data.data &&
+        Array.isArray(response.data.data.promotions)
       ) {
-        setPromotions(response.data.promotions);
+        setPromotions(response.data.data.promotions);
         setTotalPages(response.data.totalPages || 1);
       } else {
         console.error("Unexpected promotion data structure:", response);
@@ -176,17 +181,22 @@ const PromotionManagementPage = () => {
     e.preventDefault();
 
     // Form validation
-    if (!formData.name) {
-      toast.error("Vui lòng nhập tên khuyến mãi");
+    if (!formData.code) {
+      toast.error("Vui lòng nhập mã khuyến mãi");
       return;
     }
 
-    if (!formData.value || formData.value <= 0) {
+    if (!formData.description) {
+      toast.error("Vui lòng nhập mô tả khuyến mãi");
+      return;
+    }
+
+    if (!formData.discountValue || formData.discountValue <= 0) {
       toast.error("Vui lòng nhập giá trị khuyến mãi hợp lệ");
       return;
     }
 
-    if (formData.endDate < formData.startDate) {
+    if (new Date(formData.endDate) < new Date(formData.startDate)) {
       toast.error("Ngày kết thúc phải sau ngày bắt đầu");
       return;
     }
@@ -194,8 +204,10 @@ const PromotionManagementPage = () => {
     // Format data for API
     const promotionData = {
       ...formData,
-      startDate: format(formData.startDate, "yyyy-MM-dd"),
-      endDate: format(formData.endDate, "yyyy-MM-dd"),
+      discountValue: Number(formData.discountValue),
+      minOrderValue: Number(formData.minOrderValue) || 0,
+      maxDiscountAmount: formData.maxDiscountAmount ? Number(formData.maxDiscountAmount) : null,
+      usageLimit: formData.usageLimit ? Number(formData.usageLimit) : null,
     };
 
     try {
@@ -389,6 +401,20 @@ const PromotionManagementPage = () => {
     return <Badge bg="success">Đang hoạt động</Badge>;
   };
 
+  // Helper function to check if promotion is currently active
+  const isPromotionActive = (promotion) => {
+    const now = new Date();
+    const startDate = new Date(promotion.startDate);
+    const endDate = new Date(promotion.endDate);
+
+    return (
+      promotion.isActive &&
+      now >= startDate &&
+      now <= endDate &&
+      (!promotion.usageLimit || promotion.usageCount < promotion.usageLimit)
+    );
+  };
+
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">
@@ -512,8 +538,8 @@ const PromotionManagementPage = () => {
                       {promotion.discountType === "percentage"
                         ? `${promotion.discountValue}%`
                         : `${(promotion.discountValue || 0).toLocaleString(
-                            "vi-VN"
-                          )}đ`}
+                          "vi-VN"
+                        )}đ`}
                       {promotion.minOrderValue > 0 && (
                         <div className="small text-muted">
                           Đơn tối thiểu:{" "}
@@ -649,17 +675,6 @@ const PromotionManagementPage = () => {
                 </Form.Group>
               </Col>
             </Row>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Mô tả</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
 
             <Row>
               <Col md={4}>

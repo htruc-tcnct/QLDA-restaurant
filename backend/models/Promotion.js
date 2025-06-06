@@ -65,7 +65,7 @@ const promotionSchema = new mongoose.Schema(
 );
 
 // Phương thức kiểm tra xem mã khuyến mãi có hợp lệ không
-promotionSchema.methods.isValid = function() {
+promotionSchema.methods.isValid = function () {
   const now = new Date();
   return (
     this.isActive &&
@@ -76,7 +76,7 @@ promotionSchema.methods.isValid = function() {
 };
 
 // Phương thức tính toán giá trị giảm giá
-promotionSchema.methods.calculateDiscount = function(orderTotal) {
+promotionSchema.methods.calculateDiscount = function (orderTotal) {
   if (orderTotal < this.minOrderValue) {
     return 0;
   }
@@ -92,6 +92,30 @@ promotionSchema.methods.calculateDiscount = function(orderTotal) {
   }
 
   return discount;
+};
+
+// Phương thức kiểm tra xem mã khuyến mãi có hợp lệ cho số tiền cụ thể không
+promotionSchema.methods.isValidForAmount = function (orderTotal) {
+  // Kiểm tra tính hợp lệ cơ bản
+  if (!this.isValid()) {
+    return {
+      valid: false,
+      message: 'Mã khuyến mãi đã hết hạn hoặc không còn hiệu lực'
+    };
+  }
+
+  // Kiểm tra giá trị đơn hàng tối thiểu
+  if (orderTotal < this.minOrderValue) {
+    return {
+      valid: false,
+      message: `Đơn hàng cần tối thiểu ${this.minOrderValue.toLocaleString('vi-VN')}đ để áp dụng mã này`
+    };
+  }
+
+  return {
+    valid: true,
+    message: 'Mã khuyến mãi hợp lệ'
+  };
 };
 
 const Promotion = mongoose.model('Promotion', promotionSchema);
