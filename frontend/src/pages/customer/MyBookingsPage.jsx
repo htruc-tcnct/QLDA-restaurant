@@ -201,7 +201,11 @@ const MyBookingsPage = () => {
               <Col key={booking._id}>
                 <Card className="h-100 shadow-sm">
                   <Card.Header className="d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Đặt bàn #{booking._id.substr(-6)}</h5>
+                    <h5 className="mb-0">
+                      {booking.status === "confirmed" && booking.tableAssigned && booking.tableAssigned.name
+                        ? `Đặt bàn ${booking.tableAssigned.name.replace(/^(Bàn |Table )/i, '')}`
+                        : `Đặt bàn #${booking._id.substr(-6)}`}
+                    </h5>
                     {getStatusBadge(booking.status)}
                   </Card.Header>
                   <Card.Body>

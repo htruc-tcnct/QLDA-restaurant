@@ -58,7 +58,7 @@ const CustomerProfilePage = () => {
             }
 
             // Update profile
-            await userService.updateProfile({
+            await userService.updateMyProfile({
                 fullName: formData.fullName.trim(),
                 email: formData.email.trim(),
                 phoneNumber: formData.phoneNumber.trim() || undefined,

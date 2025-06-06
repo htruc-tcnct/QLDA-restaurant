@@ -258,6 +258,10 @@ exports.getMyBookings = catchAsync(async (req, res, next) => {
         path: "appliedPromotion.id",
         select: "name code type value",
       },
+      {
+        path: "tableAssigned",
+        select: "name capacity",
+      },
     ]);
 
   res.status(200).json({
@@ -509,11 +513,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
         await Notification.create({
           recipient: currentBooking.customer,
           type: "booking_reminder",
-          content: `Đặt bàn của bạn đã được xác nhận. ${
-            booking.tableAssigned
-              ? `Bàn của bạn: ${booking.tableAssigned.name}`
-              : ""
-          }`,
+          content: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
+            ? `Bàn của bạn: ${booking.tableAssigned.name}`
+            : ""
+            }`,
           relatedResource: {
             type: "booking",
             id: booking._id,
@@ -528,11 +531,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
           "booking_confirmed",
           {
             bookingId: booking._id,
-            message: `Đặt bàn của bạn đã được xác nhận. ${
-              booking.tableAssigned
-                ? `Bàn của bạn: ${booking.tableAssigned.name}`
-                : ""
-            }`,
+            message: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
+              ? `Bàn của bạn: ${booking.tableAssigned.name}`
+              : ""
+              }`,
           }
         );
       }
@@ -549,11 +551,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
         await Notification.create({
           recipient: currentBooking.customer,
           type: "booking_reminder",
-          content: `Đặt bàn của bạn đã được xác nhận. ${
-            booking.tableAssigned
-              ? `Bàn của bạn: ${booking.tableAssigned.name}`
-              : ""
-          }`,
+          content: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
+            ? `Bàn của bạn: ${booking.tableAssigned.name}`
+            : ""
+            }`,
           relatedResource: {
             type: "booking",
             id: booking._id,
@@ -568,11 +569,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
           "booking_confirmed",
           {
             bookingId: booking._id,
-            message: `Đặt bàn của bạn đã được xác nhận. ${
-              booking.tableAssigned
-                ? `Bàn của bạn: ${booking.tableAssigned.name}`
-                : ""
-            }`,
+            message: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
+              ? `Bàn của bạn: ${booking.tableAssigned.name}`
+              : ""
+              }`,
           }
         );
       }

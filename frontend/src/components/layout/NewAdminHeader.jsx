@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { FaBell, FaUser, FaSignOutAlt, FaCog, FaUserCircle } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaCog, FaUserCircle } from 'react-icons/fa';
 import useAuthStore from '../../store/authStore';
 import { toast } from 'react-toastify';
 
@@ -38,30 +38,6 @@ export default function NewAdminHeader() {
         <div className="d-flex justify-content-between align-items-center">
           <h1 className="h3 mb-0">Dashboard</h1>
           <div className="d-flex align-items-center gap-3">
-            {/* Notifications Dropdown */}
-            <div className="dropdown">
-              <button
-                className="btn position-relative"
-                type="button"
-                id="notificationsDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-                title="Thông báo"
-              >
-                <FaBell />
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  3
-                </span>
-              </button>
-              <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                <li><h6 className="dropdown-header">Thông báo mới</h6></li>
-                <li><a className="dropdown-item" href="#">Đơn hàng mới #1234</a></li>
-                <li><a className="dropdown-item" href="#">Đơn hàng mới #1235</a></li>
-                <li><a className="dropdown-item" href="#">Đánh giá mới được thêm</a></li>
-                <li><hr className="dropdown-divider" /></li>
-                <li><a className="dropdown-item text-center" href="#">Xem tất cả thông báo</a></li>
-              </ul>
-            </div>
 
             {/* User Dropdown */}
             <div className="dropdown">
