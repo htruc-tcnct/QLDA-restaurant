@@ -248,18 +248,6 @@ const LoginPage = () => {
                       )}
                     </button>
                   </div>
-                  
-                  {/* Debug Info in Development */}
-                  {process.env.NODE_ENV !== 'production' && (
-                    <div className="mt-3 p-2 border rounded bg-light">
-                      <small className="text-muted">Debug Info:</small>
-                      <pre className="mb-0 small">
-                        API Status: {apiStatus || 'unknown'}
-                        <br />
-                        Form Data: {JSON.stringify(formData, null, 2)}
-                      </pre>
-                    </div>
-                  )}
                 </form>
               </div>
               
