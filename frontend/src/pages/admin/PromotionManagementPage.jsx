@@ -1,10 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Modal, Form, Badge } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
-import { toast } from 'react-toastify';
-import promotionService from '../../services/promotionService';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Badge,
+} from "react-bootstrap";
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaCheck,
+  FaTimes,
+  FaTags,
+  FaFilter,
+} from "react-icons/fa";
+import { toast } from "react-toastify";
+import promotionService from "../../services/promotionService";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 const PromotionManagementPage = () => {
   const [promotions, setPromotions] = useState([]);
@@ -17,25 +35,25 @@ const PromotionManagementPage = () => {
 
   // State for filters
   const [filters, setFilters] = useState({
-    isActive: '',
-    type: '',
-    dateStatus: '' // 'current' for currently valid dates, 'expired' for expired, 'upcoming' for upcoming
+    isActive: "",
+    type: "",
+    dateStatus: "", // 'current' for currently valid dates, 'expired' for expired, 'upcoming' for upcoming
   });
-
   // State for promotion form modal
   const [showModal, setShowModal] = useState(false);
   const [currentPromotion, setCurrentPromotion] = useState(null);
+  const [modalTitle, setModalTitle] = useState(""); // Added state for modal title
   const [formData, setFormData] = useState({
-    code: '',
-    description: '',
-    discountType: 'percentage',
+    code: "",
+    description: "",
+    discountType: "percentage",
     discountValue: 0,
     minOrderValue: 0,
-    maxDiscountAmount: '',
-    startDate: '',
-    endDate: '',
-    usageLimit: '',
-    applicableFor: 'all'
+    maxDiscountAmount: "",
+    startDate: "",
+    endDate: "",
+    usageLimit: "",
+    applicableFor: "all",
   });
   const [currentPromotionId, setCurrentPromotionId] = useState(null);
 
@@ -55,35 +73,41 @@ const PromotionManagementPage = () => {
 
     try {
       // Filter out empty values from filters before sending to API
-      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-        if (value !== '' && value !== null && value !== undefined) {
-          acc[key] = value;
-        }
-        return acc;
-      }, {});
+      const cleanFilters = Object.entries(filters).reduce(
+        (acc, [key, value]) => {
+          if (value !== "" && value !== null && value !== undefined) {
+            acc[key] = value;
+          }
+          return acc;
+        },
+        {}
+      );
 
-      console.log('Current filters:', filters);
-      console.log('Clean filters sent to API:', cleanFilters);
+      console.log("Current filters:", filters);
+      console.log("Clean filters sent to API:", cleanFilters);
+      const response = await promotionService.getAllPromotions();
+      console.log("Promotion response:", response); // Debug log
 
-      const response = await getPromotions(page, 10, cleanFilters);
-      console.log('Promotion response:', response); // Debug log
-
-      if (response && response.data && Array.isArray(response.data.promotions)) {
+      if (
+        response &&
+        response.data &&
+        Array.isArray(response.data.promotions)
+      ) {
         setPromotions(response.data.promotions);
         setTotalPages(response.data.totalPages || 1);
       } else {
-        console.error('Unexpected promotion data structure:', response);
+        console.error("Unexpected promotion data structure:", response);
         setPromotions([]);
-        setError('Cấu trúc dữ liệu không đúng định dạng');
+        setError("Cấu trúc dữ liệu không đúng định dạng");
       }
     } catch (err) {
-      console.error('Error fetching promotions:', err);
-      setError('Không thể tải danh sách khuyến mãi. Vui lòng thử lại sau.');
+      console.error("Error fetching promotions:", err);
+      setError("Không thể tải danh sách khuyến mãi. Vui lòng thử lại sau.");
       setPromotions([]); // Reset danh sách để tránh hiển thị dữ liệu cũ
     } finally {
       setLoading(false);
     }
-  };
+  }; // <-- Add this closing brace and semicolon to properly close fetchPromotions
 
   const handleShowModal = (promotion = null) => {
     if (promotion) {
@@ -95,28 +119,31 @@ const PromotionManagementPage = () => {
         discountType: promotion.discountType,
         discountValue: promotion.discountValue,
         minOrderValue: promotion.minOrderValue || 0,
-        maxDiscountAmount: promotion.maxDiscountAmount || '',
-        startDate: format(new Date(promotion.startDate), 'yyyy-MM-dd'),
-        endDate: format(new Date(promotion.endDate), 'yyyy-MM-dd'),
-        usageLimit: promotion.usageLimit || '',
-        applicableFor: promotion.applicableFor || 'all',
-        isActive: promotion.isActive
+        maxDiscountAmount: promotion.maxDiscountAmount || "",
+        startDate: format(new Date(promotion.startDate), "yyyy-MM-dd"),
+        endDate: format(new Date(promotion.endDate), "yyyy-MM-dd"),
+        usageLimit: promotion.usageLimit || "",
+        applicableFor: promotion.applicableFor || "all",
+        isActive: promotion.isActive,
       });
     } else {
       // Creating new promotion
       setCurrentPromotion(null);
       setFormData({
-        code: '',
-        description: '',
-        discountType: 'percentage',
+        code: "",
+        description: "",
+        discountType: "percentage",
         discountValue: 0,
         minOrderValue: 0,
-        maxDiscountAmount: '',
-        startDate: format(new Date(), 'yyyy-MM-dd'),
-        endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // +30 days
-        usageLimit: '',
-        applicableFor: 'all',
-        isActive: true
+        maxDiscountAmount: "",
+        startDate: format(new Date(), "yyyy-MM-dd"),
+        endDate: format(
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          "yyyy-MM-dd"
+        ), // +30 days
+        usageLimit: "",
+        applicableFor: "all",
+        isActive: true,
       });
     }
     setShowModal(true);
@@ -127,13 +154,12 @@ const PromotionManagementPage = () => {
     setCurrentPromotion(null);
   };
 
-
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -141,7 +167,7 @@ const PromotionManagementPage = () => {
   const handleDateChange = (date, fieldName) => {
     setFormData({
       ...formData,
-      [fieldName]: date
+      [fieldName]: date,
     });
   };
 
@@ -151,63 +177,68 @@ const PromotionManagementPage = () => {
 
     // Form validation
     if (!formData.name) {
-      toast.error('Vui lòng nhập tên khuyến mãi');
+      toast.error("Vui lòng nhập tên khuyến mãi");
       return;
     }
 
     if (!formData.value || formData.value <= 0) {
-      toast.error('Vui lòng nhập giá trị khuyến mãi hợp lệ');
+      toast.error("Vui lòng nhập giá trị khuyến mãi hợp lệ");
       return;
     }
 
     if (formData.endDate < formData.startDate) {
-      toast.error('Ngày kết thúc phải sau ngày bắt đầu');
+      toast.error("Ngày kết thúc phải sau ngày bắt đầu");
       return;
     }
 
     // Format data for API
     const promotionData = {
       ...formData,
-      startDate: format(formData.startDate, 'yyyy-MM-dd'),
-      endDate: format(formData.endDate, 'yyyy-MM-dd')
+      startDate: format(formData.startDate, "yyyy-MM-dd"),
+      endDate: format(formData.endDate, "yyyy-MM-dd"),
     };
 
     try {
       if (currentPromotionId) {
         // Update existing promotion
-        await promotionService.updatePromotion(currentPromotion._id, promotionData);
-        toast.success('Cập nhật mã khuyến mãi thành công');
+        await promotionService.updatePromotion(
+          currentPromotion._id,
+          promotionData
+        );
+        toast.success("Cập nhật mã khuyến mãi thành công");
       } else {
         // Create new promotion
         await promotionService.createPromotion(promotionData);
-        toast.success('Tạo mã khuyến mãi thành công');
+        toast.success("Tạo mã khuyến mãi thành công");
       }
 
       // Close modal and refresh list
       handleCloseModal();
       fetchPromotions();
     } catch (err) {
-      console.error('Error saving promotion:', err);
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi lưu khuyến mãi');
+      console.error("Error saving promotion:", err);
+      toast.error(
+        err.response?.data?.message || "Có lỗi xảy ra khi lưu khuyến mãi"
+      );
     }
   };
 
   // Open modal for creating a new promotion
   const handleOpenCreateModal = () => {
     setCurrentPromotionId(null);
-    setModalTitle('Tạo khuyến mãi mới');
+    setModalTitle("Tạo khuyến mãi mới");
     setFormData({
-      name: '',
-      description: '',
-      type: 'percentage',
-      value: '',
-      code: '',
+      name: "",
+      description: "",
+      type: "percentage",
+      value: "",
+      code: "",
       startDate: new Date(),
       endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
       minSpend: 0,
-      maxDiscountAmount: '',
-      usageLimit: '',
-      isActive: true
+      maxDiscountAmount: "",
+      usageLimit: "",
+      isActive: true,
     });
     setShowModal(true);
   };
@@ -215,25 +246,24 @@ const PromotionManagementPage = () => {
   // Open modal for editing an existing promotion
   const handleOpenEditModal = (promotion) => {
     setCurrentPromotionId(promotion._id);
-    setModalTitle('Chỉnh sửa khuyến mãi');
+    setModalTitle("Chỉnh sửa khuyến mãi");
     setFormData({
       name: promotion.name,
-      description: promotion.description || '',
+      description: promotion.description || "",
       type: promotion.type,
       value: promotion.value,
-      code: promotion.code || '',
+      code: promotion.code || "",
       startDate: new Date(promotion.startDate),
       endDate: new Date(promotion.endDate),
       minSpend: promotion.minSpend || 0,
-      maxDiscountAmount: promotion.maxDiscountAmount || '',
-      usageLimit: promotion.usageLimit || '',
-      isActive: promotion.isActive
+      maxDiscountAmount: promotion.maxDiscountAmount || "",
+      usageLimit: promotion.usageLimit || "",
+      isActive: promotion.isActive,
     });
     setShowModal(true);
   };
-
   // Close modal and reset form
-  const handleCloseModal = () => {
+  const handleClosePromotionModal = () => {
     setShowModal(false);
     setCurrentPromotionId(null);
   };
@@ -249,46 +279,50 @@ const PromotionManagementPage = () => {
     setShowDeleteModal(false);
     setPromotionToDelete(null);
   };
-
   // Handle promotion deletion
   const handleDeletePromotion = async () => {
     if (!promotionToDelete) return;
 
     try {
-      await deletePromotion(promotionToDelete._id);
-      toast.success('Xóa khuyến mãi thành công');
+      await promotionService.deletePromotion(promotionToDelete._id);
+      toast.success("Xóa khuyến mãi thành công");
       handleCloseDeleteModal();
       fetchPromotions();
     } catch (err) {
-      console.error('Error deleting promotion:', err);
-      toast.error('Có lỗi xảy ra khi xóa khuyến mãi');
+      console.error("Error deleting promotion:", err);
+      toast.error("Có lỗi xảy ra khi xóa khuyến mãi");
     }
   };
-
   // Handle promotion status toggle
   const handleToggleStatus = async (id) => {
     try {
-      await togglePromotionStatus(id);
-      toast.success('Cập nhật trạng thái thành công');
+      // We need to use the updatePromotion service method instead
+      const promotion = promotions.find((p) => p._id === id);
+      if (!promotion) return;
+
+      await promotionService.updatePromotion(id, {
+        isActive: !promotion.isActive,
+      });
+      toast.success("Cập nhật trạng thái thành công");
       fetchPromotions();
     } catch (err) {
-      console.error('Error toggling promotion status:', err);
-      toast.error('Có lỗi xảy ra khi cập nhật trạng thái');
+      console.error("Error toggling promotion status:", err);
+      toast.error("Có lỗi xảy ra khi cập nhật trạng thái");
     }
   };
 
   // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    console.log('Filter change:', { name, value });
-    console.log('Previous filters:', filters);
+    console.log("Filter change:", { name, value });
+    console.log("Previous filters:", filters);
 
     const newFilters = {
       ...filters,
-      [name]: value
+      [name]: value,
     };
 
-    console.log('New filters:', newFilters);
+    console.log("New filters:", newFilters);
     setFilters(newFilters);
     setPage(1); // Reset to first page when filters change
   };
@@ -296,20 +330,20 @@ const PromotionManagementPage = () => {
   // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return format(date, 'dd/MM/yyyy', { locale: vi });
+    return format(date, "dd/MM/yyyy", { locale: vi });
   };
 
   // Get promotion type display text
   const getPromotionTypeText = (type) => {
     switch (type) {
-      case 'percentage':
-        return 'Phần trăm';
-      case 'fixed_amount':
-        return 'Số tiền cố định';
-      case 'free_shipping':
-        return 'Miễn phí giao hàng';
-      case 'buy_x_get_y':
-        return 'Mua X tặng Y';
+      case "percentage":
+        return "Phần trăm";
+      case "fixed_amount":
+        return "Số tiền cố định";
+      case "free_shipping":
+        return "Miễn phí giao hàng";
+      case "buy_x_get_y":
+        return "Mua X tặng Y";
       default:
         return type;
     }
@@ -318,16 +352,16 @@ const PromotionManagementPage = () => {
   // Get promotion value display text
   const getPromotionValueText = (promotion) => {
     switch (promotion.type) {
-      case 'percentage':
+      case "percentage":
         return `${promotion.value}%`;
-      case 'fixed_amount':
-        return new Intl.NumberFormat('vi-VN', {
-          style: 'currency',
-          currency: 'VND'
+      case "fixed_amount":
+        return new Intl.NumberFormat("vi-VN", {
+          style: "currency",
+          currency: "VND",
         }).format(promotion.value);
-      case 'free_shipping':
-        return 'Miễn phí giao hàng';
-      case 'buy_x_get_y':
+      case "free_shipping":
+        return "Miễn phí giao hàng";
+      case "buy_x_get_y":
         return `Mua ${promotion.value} tặng 1`;
       default:
         return promotion.value;
@@ -355,14 +389,12 @@ const PromotionManagementPage = () => {
     return <Badge bg="success">Đang hoạt động</Badge>;
   };
 
-
   return (
     <Container fluid className="p-4">
       <h1 className="mb-4">
         <FaTags className="me-2" />
         Quản lý Khuyến mãi
       </h1>
-
       {/* Filters */}
       <Card className="mb-4 shadow-sm">
         <Card.Body>
@@ -371,7 +403,9 @@ const PromotionManagementPage = () => {
               <Form.Group className="mb-3">
                 <Form.Label>
                   <FaFilter className="me-1" /> Trạng thái kích hoạt
-                  <small className="text-muted d-block">Được thiết lập bởi admin</small>
+                  <small className="text-muted d-block">
+                    Được thiết lập bởi admin
+                  </small>
                 </Form.Label>
                 <Form.Select
                   name="isActive"
@@ -386,7 +420,9 @@ const PromotionManagementPage = () => {
             </Col>
             <Col md={3}>
               <Form.Group className="mb-3">
-                <Form.Label><FaFilter className="me-1" /> Loại khuyến mãi</Form.Label>
+                <Form.Label>
+                  <FaFilter className="me-1" /> Loại khuyến mãi
+                </Form.Label>
                 <Form.Select
                   name="type"
                   value={filters.type}
@@ -404,7 +440,9 @@ const PromotionManagementPage = () => {
               <Form.Group className="mb-3">
                 <Form.Label>
                   <FaFilter className="me-1" /> Thời gian hiệu lực
-                  <small className="text-muted d-block">Dựa trên ngày hiện tại</small>
+                  <small className="text-muted d-block">
+                    Dựa trên ngày hiện tại
+                  </small>
                 </Form.Label>
                 <Form.Select
                   name="dateStatus"
@@ -430,7 +468,6 @@ const PromotionManagementPage = () => {
           </Row>
         </Card.Body>
       </Card>
-
       {/* Promotions List */}
       <Card className="shadow-sm">
         <Card.Body>
@@ -444,7 +481,10 @@ const PromotionManagementPage = () => {
           ) : promotions.length === 0 ? (
             <div className="text-center py-4">
               <p>Chưa có mã khuyến mãi nào.</p>
-              <Button variant="outline-primary" onClick={() => handleShowModal()}>
+              <Button
+                variant="outline-primary"
+                onClick={() => handleShowModal()}
+              >
                 Tạo mã khuyến mãi đầu tiên
               </Button>
             </div>
@@ -469,12 +509,18 @@ const PromotionManagementPage = () => {
                     </td>
                     <td>{promotion.description}</td>
                     <td>
-                      {promotion.discountType === 'percentage'
+                      {promotion.discountType === "percentage"
                         ? `${promotion.discountValue}%`
-                        : `${(promotion.discountValue || 0).toLocaleString('vi-VN')}đ`}
+                        : `${(promotion.discountValue || 0).toLocaleString(
+                            "vi-VN"
+                          )}đ`}
                       {promotion.minOrderValue > 0 && (
                         <div className="small text-muted">
-                          Đơn tối thiểu: {(promotion.minOrderValue || 0).toLocaleString('vi-VN')}đ
+                          Đơn tối thiểu:{" "}
+                          {(promotion.minOrderValue || 0).toLocaleString(
+                            "vi-VN"
+                          )}
+                          đ
                         </div>
                       )}
                     </td>
@@ -500,7 +546,8 @@ const PromotionManagementPage = () => {
                         <Badge bg="info">Chưa bắt đầu</Badge>
                       ) : new Date() > new Date(promotion.endDate) ? (
                         <Badge bg="danger">Đã hết hạn</Badge>
-                      ) : promotion.usageLimit && promotion.usageCount >= promotion.usageLimit ? (
+                      ) : promotion.usageLimit &&
+                        promotion.usageCount >= promotion.usageLimit ? (
                         <Badge bg="warning">Đã hết lượt</Badge>
                       ) : (
                         <Badge bg="secondary">Không hoạt động</Badge>
@@ -523,12 +570,22 @@ const PromotionManagementPage = () => {
                           <FaTrashAlt />
                         </Button>
                         <Button
-                          variant={promotion.isActive ? "outline-secondary" : "outline-success"}
+                          variant={
+                            promotion.isActive
+                              ? "outline-secondary"
+                              : "outline-success"
+                          }
                           size="sm"
                           onClick={() => handleToggleStatus(promotion._id)}
-                          title={promotion.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+                          title={
+                            promotion.isActive ? "Vô hiệu hóa" : "Kích hoạt"
+                          }
                         >
-                          {promotion.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                          {promotion.isActive ? (
+                            <FaToggleOn />
+                          ) : (
+                            <FaToggleOff />
+                          )}
                         </Button>
                       </div>
                     </td>
@@ -563,11 +620,14 @@ const PromotionManagementPage = () => {
           )}
         </Card.Body>
       </Card>
-
-      {/* Promotion Form Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} size="lg">
+      {/* Promotion Form Modal */}{" "}
+      <Modal show={showModal} onHide={handleClosePromotionModal} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>{currentPromotion ? 'Chỉnh sửa mã khuyến mãi' : 'Tạo mã khuyến mãi mới'}</Modal.Title>
+          <Modal.Title>
+            {currentPromotion
+              ? "Chỉnh sửa mã khuyến mãi"
+              : "Tạo mã khuyến mãi mới"}
+          </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit}>
           <Modal.Body>
@@ -622,7 +682,9 @@ const PromotionManagementPage = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>
-                    {formData.discountType === 'percentage' ? 'Phần trăm giảm (%)' : 'Số tiền giảm (VNĐ)'}
+                    {formData.discountType === "percentage"
+                      ? "Phần trăm giảm (%)"
+                      : "Số tiền giảm (VNĐ)"}
                   </Form.Label>
                   <Form.Control
                     type="number"
@@ -631,7 +693,7 @@ const PromotionManagementPage = () => {
                     onChange={handleInputChange}
                     required
                     min="0"
-                    step={formData.discountType === 'percentage' ? '1' : '1000'}
+                    step={formData.discountType === "percentage" ? "1" : "1000"}
                   />
                 </Form.Group>
               </Col>
@@ -650,7 +712,7 @@ const PromotionManagementPage = () => {
               </Col>
             </Row>
 
-            {formData.discountType === 'percentage' && (
+            {formData.discountType === "percentage" && (
               <Form.Group className="mb-3">
                 <Form.Label>Giảm tối đa (VNĐ)</Form.Label>
                 <Form.Control
@@ -681,7 +743,6 @@ const PromotionManagementPage = () => {
               />
             </Form.Group>
 
-
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -709,7 +770,6 @@ const PromotionManagementPage = () => {
                 </Form.Group>
               </Col>
             </Row>
-
 
             <Row>
               <Col md={6}>
@@ -755,24 +815,30 @@ const PromotionManagementPage = () => {
             </Form.Group>
 
             <div className="d-flex justify-content-end mt-4">
-              <Button variant="secondary" onClick={handleCloseModal} className="me-2">
+              {" "}
+              <Button
+                variant="secondary"
+                onClick={handleClosePromotionModal}
+                className="me-2"
+              >
                 Hủy
               </Button>
               <Button variant="primary" type="submit">
-                {currentPromotionId ? 'Cập nhật' : 'Tạo mới'}
+                {currentPromotionId ? "Cập nhật" : "Tạo mới"}
               </Button>
             </div>
-          </Form>
-        </Modal.Body>
+          </Modal.Body>
+        </Form>
       </Modal>
-
       {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={handleCloseDeleteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xóa</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>Bạn có chắc chắn muốn xóa khuyến mãi "{promotionToDelete?.name}"?</p>
+          <p>
+            Bạn có chắc chắn muốn xóa khuyến mãi "{promotionToDelete?.name}"?
+          </p>
           <p className="text-danger">Hành động này không thể hoàn tác.</p>
         </Modal.Body>
         <Modal.Footer>
@@ -788,4 +854,4 @@ const PromotionManagementPage = () => {
   );
 };
 
-export default PromotionManagementPage; 
+export default PromotionManagementPage;

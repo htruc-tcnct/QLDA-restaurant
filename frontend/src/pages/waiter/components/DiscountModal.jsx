@@ -10,8 +10,6 @@ import {
   Tab,
   Alert,
   Spinner,
-  Spinner,
-  Alert,
 } from "react-bootstrap";
 import {
   FaPercentage,
@@ -40,7 +38,6 @@ const DiscountModal = ({
     currentDiscount > 0 ? ((currentDiscount / subTotal) * 100).toFixed(0) : 0
   );
   const [discountAmount, setDiscountAmount] = useState(currentDiscount);
-
   // Promotion code state
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
@@ -48,11 +45,6 @@ const DiscountModal = ({
   const [promoSuccess, setPromoSuccess] = useState(false);
   const [promoData, setPromoData] = useState(null);
   const [promoDiscountAmount, setPromoDiscountAmount] = useState(0);
-
-  // Promotion code states
-  const [promoCode, setPromoCode] = useState("");
-  const [promoLoading, setPromoLoading] = useState(false);
-  const [promoError, setPromoError] = useState("");
   const [appliedPromotion, setAppliedPromotion] = useState(null);
 
   // Format price with thousand separator

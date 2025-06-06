@@ -76,10 +76,9 @@ const TableManagementPage = () => {
 
   // State for view mode
   const [activeTab, setActiveTab] = useState("grid");
-
   // State for table modal
   const [showTableModal, setShowTableModal] = useState(false);
-  const [modalMode, setModalMode] = useState("add"); // 'add', 'edit', 'view'
+  const [tableModalMode, setTableModalMode] = useState("add"); // 'add', 'edit', 'view'
   const [selectedTable, setSelectedTable] = useState(null);
 
   // Form state for add/edit
@@ -103,19 +102,10 @@ const TableManagementPage = () => {
   // Fetch tables on component mount
   useEffect(() => {
     fetchTables();
-  }, []);
-
-  // Apply filters when filter states change
+  }, []); // Apply filters when filter states change
   useEffect(() => {
     applyFilters();
-  }, [
-    tables,
-    searchTerm,
-    statusFilter,
-    locationFilter,
-    sortField,
-    sortDirection,
-  ]);
+  }, [filters, tables, sortConfig]);
   const fetchTables = async () => {
     setLoading(true);
     setError(null);
@@ -141,6 +131,15 @@ const TableManagementPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to handle filter changes
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const applyFilters = () => {
@@ -189,13 +188,6 @@ const TableManagementPage = () => {
 
     setFilteredTables(result);
   };
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
 
   const clearFilters = () => {
     setFilters({
@@ -225,10 +217,9 @@ const TableManagementPage = () => {
     }
     setSortConfig({ key, direction });
   };
-
   // Modal handlers
   const openAddModal = () => {
-    setModalMode("add");
+    setTableModalMode("add");
     setFormData({
       name: "",
       capacity: 2,
@@ -240,7 +231,7 @@ const TableManagementPage = () => {
   };
 
   const openEditModal = (table) => {
-    setModalMode("edit");
+    setTableModalMode("edit");
     setCurrentTable(table);
     setFormData({
       name: table.name,
@@ -252,7 +243,7 @@ const TableManagementPage = () => {
   };
 
   const openViewModal = (table) => {
-    setModalMode("view");
+    setTableModalMode("view");
     setSelectedTable(table);
     setFormData({
       name: table.name,
@@ -276,11 +267,11 @@ const TableManagementPage = () => {
   };
 
   // CRUD operations
-  const handleSubmit = async (e) => {
+  const handleTableSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      if (modalMode === "add") {
+      if (tableModalMode === "add") {
         // Đảm bảo rằng trạng thái bàn mới luôn là "available" (trống)
         const newTableData = {
           ...formData,
@@ -288,17 +279,19 @@ const TableManagementPage = () => {
         };
         await tableService.createTable(newTableData);
         toast.success("Tạo bàn mới thành công");
-      } else if (modalMode === "edit") {
+      } else if (tableModalMode === "edit") {
         await tableService.updateTable(currentTable._id, formData);
         toast.success("Cập nhật bàn thành công");
       }
 
-      handleCloseModal();
+      setShowTableModal(false);
       fetchTables();
     } catch (error) {
       console.error("Error saving table:", error);
       toast.error(
-        modalMode === "add" ? "Không thể tạo bàn mới" : "Không thể cập nhật bàn"
+        tableModalMode === "add"
+          ? "Không thể tạo bàn mới"
+          : "Không thể cập nhật bàn"
       );
     }
   };
@@ -447,12 +440,11 @@ const TableManagementPage = () => {
             >
               Đổi trạng thái
             </Button>
-            <div>
-              <Button
+            <div>              <Button
                 variant="outline-secondary"
                 size="sm"
                 className="me-1"
-                onClick={() => openEditTableModal(table)}
+                onClick={() => openEditModal(table)}
               >
                 <FaEdit />
               </Button>
@@ -489,8 +481,7 @@ const TableManagementPage = () => {
             </Button>
             <Button
               variant="outline-primary"
-              size="sm"
-              onClick={() => openEditTableModal(table)}
+              size="sm"              onClick={() => openEditModal(table)}
               title="Chỉnh sửa"
             >
               <FaEdit />
@@ -520,7 +511,6 @@ const TableManagementPage = () => {
           <p className="text-muted">Quản lý tất cả các bàn trong nhà hàng</p>
         </Col>
       </Row>
-
       <Card className="shadow-sm mb-4">
         <Card.Body>
           <Row className="mb-3 align-items-end">
@@ -593,11 +583,10 @@ const TableManagementPage = () => {
                 onClick={clearFilters}
               >
                 <FaFilter className="me-1" /> Xóa bộ lọc
-              </Button>
-              <Button
+              </Button>              <Button
                 variant="primary"
                 className="flex-grow-1"
-                onClick={openAddTableModal}
+                onClick={openAddModal}
               >
                 <FaPlus className="me-1" /> Thêm bàn mới
               </Button>
@@ -731,20 +720,19 @@ const TableManagementPage = () => {
               tables={filteredTables}
               loading={loading}
               onStatusChange={handleQuickStatusChange}
-              onEditTable={openEditTableModal}
+              onEditTable={openEditModal}
               onDeleteTable={openDeleteConfirmation}
             />
           )}
         </Card.Body>
-      </Card>
-
+      </Card>{" "}
       {/* Table Modal (Add/Edit/View) */}
       <Modal show={showTableModal} onHide={() => setShowTableModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>
-            {modalMode === "add"
+            {tableModalMode === "add"
               ? "Thêm bàn mới"
-              : modalMode === "edit"
+              : tableModalMode === "edit"
               ? "Chỉnh sửa bàn"
               : "Chi tiết bàn"}
           </Modal.Title>
@@ -752,35 +740,32 @@ const TableManagementPage = () => {
         <Modal.Body>
           <Form onSubmit={handleTableSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label>Tên bàn</Form.Label>
-              <Form.Control
+              <Form.Label>Tên bàn</Form.Label>              <Form.Control
                 type="text"
                 name="name"
                 value={formData.name}
-                onChange={handleFormChange}
-                disabled={modalMode === "view"}
+                onChange={handleInputChange}
+                disabled={tableModalMode === "view"}
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Sức chứa (số người)</Form.Label>
-              <Form.Control
+              <Form.Label>Sức chứa (số người)</Form.Label>              <Form.Control
                 type="number"
                 name="capacity"
                 value={formData.capacity}
-                onChange={handleFormChange}
-                disabled={modalMode === "view"}
+                onChange={handleInputChange}
+                disabled={tableModalMode === "view"}
                 min="1"
                 required
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Vị trí</Form.Label>
-              <Form.Select
+              <Form.Label>Vị trí</Form.Label>              <Form.Select
                 name="location"
                 value={formData.location}
-                onChange={handleFormChange}
-                disabled={modalMode === "view"}
+                onChange={handleInputChange}
+                disabled={tableModalMode === "view"}
               >
                 <option value="main">Khu vực chính</option>
                 <option value="outdoor">Ngoài trời</option>
@@ -790,12 +775,11 @@ const TableManagementPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Trạng thái</Form.Label>
-              <Form.Select
+              <Form.Label>Trạng thái</Form.Label>              <Form.Select
                 name="status"
                 value={formData.status}
-                onChange={handleFormChange}
-                disabled={modalMode === "view"}
+                onChange={handleInputChange}
+                disabled={tableModalMode === "view"}
               >
                 <option value="available">Trống</option>
                 <option value="occupied">Đang sử dụng</option>
@@ -805,7 +789,7 @@ const TableManagementPage = () => {
               </Form.Select>
             </Form.Group>
 
-            {modalMode !== "view" && (
+            {tableModalMode !== "view" && (
               <div className="d-flex justify-content-end">
                 <Button
                   variant="secondary"
@@ -816,12 +800,12 @@ const TableManagementPage = () => {
                 </Button>
                 <Button variant="primary" type="submit">
                   <FaSave className="me-1" />
-                  {modalMode === "add" ? "Tạo bàn" : "Lưu thay đổi"}
+                  {tableModalMode === "add" ? "Tạo bàn" : "Lưu thay đổi"}
                 </Button>
               </div>
             )}
 
-            {modalMode === "view" && (
+            {tableModalMode === "view" && (
               <div className="d-flex justify-content-end">
                 <Button
                   variant="secondary"
@@ -834,7 +818,6 @@ const TableManagementPage = () => {
           </Form>
         </Modal.Body>
       </Modal>
-
       {/* Delete Confirmation Modal */}
       <Modal
         show={showDeleteConfirmation}
@@ -874,7 +857,6 @@ const TableManagementPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
       {/* Status Update Modal */}
       <Modal show={showStatusModal} onHide={() => setShowStatusModal(false)}>
         <Modal.Header closeButton>
