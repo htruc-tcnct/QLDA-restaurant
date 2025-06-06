@@ -42,7 +42,7 @@ const MyBookingsPage = () => {
   const fetchMyBookings = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/v1/bookings/my-bookings");
+      const response = await api.get("/api/bookings/my-bookings");
       setBookings(response.data.data.bookings);
       setError("");
     } catch (err) {
@@ -225,7 +225,7 @@ const MyBookingsPage = () => {
                           {booking.numberOfGuests} người
                         </span>
                       </div>
-                      
+
                       {booking.tableAssigned && (
                         <div className="d-flex align-items-center mt-2">
                           <FaCheckCircle className="text-success me-2" />
@@ -234,7 +234,8 @@ const MyBookingsPage = () => {
                             {booking.tableAssigned.name}
                             {booking.tableAssigned.capacity && (
                               <small className="text-muted ms-1">
-                                (Sức chứa: {booking.tableAssigned.capacity} người)
+                                (Sức chứa: {booking.tableAssigned.capacity}{" "}
+                                người)
                               </small>
                             )}
                           </span>
