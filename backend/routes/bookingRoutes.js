@@ -24,6 +24,8 @@ router.put(
 // Staff/Admin routes
 router.use(authController.restrictTo("waiter", "staff", "manager", "admin"));
 
+router.put("/:id/cancel", bookingController.cancelBooking);
+
 router.route("/").get(bookingController.getAllBookings);
 
 router

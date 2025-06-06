@@ -509,11 +509,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
         await Notification.create({
           recipient: currentBooking.customer,
           type: "booking_reminder",
-          content: `Đặt bàn của bạn đã được xác nhận. ${
-            booking.tableAssigned
+          content: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
               ? `Bàn của bạn: ${booking.tableAssigned.name}`
               : ""
-          }`,
+            }`,
           relatedResource: {
             type: "booking",
             id: booking._id,
@@ -528,11 +527,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
           "booking_confirmed",
           {
             bookingId: booking._id,
-            message: `Đặt bàn của bạn đã được xác nhận. ${
-              booking.tableAssigned
+            message: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
                 ? `Bàn của bạn: ${booking.tableAssigned.name}`
                 : ""
-            }`,
+              }`,
           }
         );
       }
@@ -549,11 +547,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
         await Notification.create({
           recipient: currentBooking.customer,
           type: "booking_reminder",
-          content: `Đặt bàn của bạn đã được xác nhận. ${
-            booking.tableAssigned
+          content: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
               ? `Bàn của bạn: ${booking.tableAssigned.name}`
               : ""
-          }`,
+            }`,
           relatedResource: {
             type: "booking",
             id: booking._id,
@@ -568,11 +565,10 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
           "booking_confirmed",
           {
             bookingId: booking._id,
-            message: `Đặt bàn của bạn đã được xác nhận. ${
-              booking.tableAssigned
+            message: `Đặt bàn của bạn đã được xác nhận. ${booking.tableAssigned
                 ? `Bàn của bạn: ${booking.tableAssigned.name}`
                 : ""
-            }`,
+              }`,
           }
         );
       }
@@ -631,6 +627,39 @@ exports.cancelBookingByCustomer = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
+    data: {
+      booking,
+    },
+  });
+});
+
+// Cancel booking (for staff/admin)
+exports.cancelBooking = catchAsync(async (req, res, next) => {
+  const { reason } = req.body;
+
+  const booking = await Booking.findById(req.params.id);
+
+  if (!booking) {
+    return next(new AppError("Không tìm thấy đặt chỗ với ID này", 404));
+  }
+
+  // Staff/admin can cancel any booking that's not already cancelled or completed
+  if (["cancelled", "cancelled_by_customer", "completed", "no-show"].includes(booking.status)) {
+    return next(
+      new AppError("Đặt chỗ này đã được hủy hoặc hoàn thành", 400)
+    );
+  }
+
+  booking.status = "cancelled";
+  booking.cancellationReason = reason || "Hủy bởi nhân viên";
+  booking.cancelledAt = new Date();
+  booking.cancelledBy = req.user._id;
+
+  await booking.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "Đặt chỗ đã được hủy thành công",
     data: {
       booking,
     },
