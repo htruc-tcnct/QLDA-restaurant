@@ -23,6 +23,7 @@ import {
   FaTable,
   FaInfoCircle,
   FaUsers,
+  FaUtensils,
 } from "react-icons/fa";
 import { format, parseISO, isToday, isTomorrow, addDays } from "date-fns";
 import { toast } from "react-toastify";
@@ -62,6 +63,11 @@ const BookingManagement = () => {
     specialRequests: "",
     tableId: "",
   });
+
+  // State for pre-ordered items modal
+  const [showPreOrderedModal, setShowPreOrderedModal] = useState(false);
+  const [preOrderedItems, setPreOrderedItems] = useState([]);
+
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingAvailableTables, setLoadingAvailableTables] = useState(false);
   const [modalMode, setModalMode] = useState("edit");
@@ -487,6 +493,16 @@ const BookingManagement = () => {
     }
   };
 
+  // Handler to view pre-ordered items
+  const handleViewPreOrderedItems = (booking) => {
+    if (booking.preOrderedItems && booking.preOrderedItems.length > 0) {
+      setPreOrderedItems(booking.preOrderedItems);
+      setShowPreOrderedModal(true);
+    } else {
+      toast.info("Khách hàng này không có món ăn đặt trước");
+    }
+  };
+
   return (
     <div className="booking-management">
       <Row className="mb-4">
@@ -632,11 +648,12 @@ const BookingManagement = () => {
                                 >
                                   <FaCheck />
                                 </Button>
-                              )}
+                              )}{" "}
                               <Button
                                 variant="outline-info"
                                 size="sm"
                                 onClick={() => handleViewBooking(booking._id)}
+                                title="Xem chi tiết"
                               >
                                 <FaEye />
                               </Button>
@@ -644,15 +661,40 @@ const BookingManagement = () => {
                                 variant="outline-primary"
                                 size="sm"
                                 onClick={() => handleEditBooking(booking._id)}
+                                title="Chỉnh sửa"
                               >
                                 <FaEdit />
-                              </Button>
+                              </Button>{" "}
+                              {booking.preOrderedItems &&
+                                booking.preOrderedItems.length > 0 && (
+                                  <Button
+                                    variant="outline-warning"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleViewPreOrderedItems(booking)
+                                    }
+                                    title="Xem món ăn đặt trước"
+                                  >
+                                    <FaUtensils />
+                                  </Button>
+                                )}
                               <Button
                                 variant="outline-danger"
                                 size="sm"
                                 onClick={() => handleDeleteBooking(booking._id)}
+                                title="Xóa đặt bàn"
                               >
                                 <FaTrash />
+                              </Button>
+                              <Button
+                                variant="outline-warning"
+                                size="sm"
+                                onClick={() =>
+                                  handleViewPreOrderedItems(booking)
+                                }
+                                title="Xem món đã đặt trước"
+                              >
+                                <FaInfoCircle />
                               </Button>
                             </div>
                           </td>
@@ -895,6 +937,82 @@ const BookingManagement = () => {
             </div>
           </Form>
         </Modal.Body>
+      </Modal>
+
+      {/* Pre-Ordered Items Modal */}
+      <Modal
+        show={showPreOrderedModal}
+        onHide={() => setShowPreOrderedModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Danh sách món ăn đặt trước</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {preOrderedItems.length === 0 ? (
+            <p className="text-center">Không có món ăn đặt trước</p>
+          ) : (
+            <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Món ăn</th>
+                  <th>Số lượng</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preOrderedItems.map((item, index) => (
+                  <tr key={index}>
+                    <td>
+                      {item.menuItem ? (
+                        <>
+                          <div>{item.menuItem.name}</div>
+                          {item.menuItem.price && (
+                            <small className="text-muted">
+                              {new Intl.NumberFormat("vi-VN", {
+                                style: "currency",
+                                currency: "VND",
+                              }).format(item.menuItem.price)}
+                            </small>
+                          )}
+                          {item.menuItem.imageUrls &&
+                            item.menuItem.imageUrls.length > 0 && (
+                              <img
+                                src={item.menuItem.imageUrls[0]}
+                                alt={item.menuItem.name}
+                                style={{
+                                  width: "60px",
+                                  height: "60px",
+                                  objectFit: "cover",
+                                  marginTop: "5px",
+                                  borderRadius: "4px",
+                                }}
+                              />
+                            )}
+                        </>
+                      ) : (
+                        <span className="text-danger">Món ăn đã bị xóa</span>
+                      )}
+                    </td>
+                    <td className="text-center">{item.quantity || 1}</td>
+                    <td>
+                      {item.notes || (
+                        <span className="text-muted">Không có</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPreOrderedModal(false)}
+          >
+            Đóng
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );
