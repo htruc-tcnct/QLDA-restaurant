@@ -1,75 +1,56 @@
-import api from './api';
+import api from "./api";
 
 const userService = {
-    // Get current user profile
-    getCurrentUser: async () => {
-        try {
-            const response = await api.get('/api/auth/me');
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  // User self management
+  getMyProfile: async () => {
+    return api.get("/api/v1/users/me");
+  },
 
-    // Update user profile
-    updateProfile: async (profileData) => {
-        try {
-            const response = await api.put('/api/auth/profile', profileData);
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  updateMyProfile: async (userData) => {
+    return api.patch("/api/v1/users/update-me", userData);
+  },
 
-    // Get all users (admin only)
-    getAllUsers: async (params = {}) => {
-        try {
-            const response = await api.get('/api/admin/users', { params });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  updateMyPassword: async (passwordData) => {
+    return api.patch("/api/v1/users/update-password", passwordData);
+  },
 
-    // Get user by ID (admin only)
-    getUserById: async (userId) => {
-        try {
-            const response = await api.get(`/api/admin/users/${userId}`);
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  // Admin management
+  getAllUsers: async (params = {}) => {
+    try {
+      const response = await api.get("/api/v1/admin/users", { params });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 
-    // Update user (admin only)
-    updateUser: async (userId, userData) => {
-        try {
-            const response = await api.put(`/api/admin/users/${userId}`, userData);
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  getUserProfile: async (userId) => {
+    return api.get(`/api/v1/users/${userId}`);
+  },
 
-    // Delete user (admin only)
-    deleteUser: async (userId) => {
-        try {
-            const response = await api.delete(`/api/admin/users/${userId}`);
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  updateUser: async (userId, userData) => {
+    return api.patch(`/api/v1/users/${userId}`, userData);
+  },
 
-    // Update user status (admin only)
-    updateUserStatus: async (userId, isActive) => {
-        try {
-            const response = await api.patch(`/api/admin/users/${userId}/status`, { isActive });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data || error.message;
-        }
-    },
+  deleteUser: async (userId) => {
+    try {
+      const response = await api.delete(`/api/v1/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  updateUserStatus: async (userId, isActive) => {
+    try {
+      const response = await api.patch(`/api/v1/admin/users/${userId}/status`, {
+        isActive,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 };
 
-export default userService; 
+export default userService;

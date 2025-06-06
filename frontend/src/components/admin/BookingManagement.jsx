@@ -203,17 +203,22 @@ const BookingManagement = () => {
   };
   
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      pending: { bg: 'warning', text: 'Chờ xác nhận' },
-      confirmed: { bg: 'success', text: 'Đã xác nhận' },
-      cancelled: { bg: 'danger', text: 'Đã hủy' },
-      completed: { bg: 'info', text: 'Hoàn thành' },
-      'no-show': { bg: 'secondary', text: 'Không đến' }
-    };
-    
-    const { bg, text } = statusConfig[status] || { bg: 'secondary', text: status };
-    
-    return <Badge bg={bg}>{text}</Badge>;
+    switch (status) {
+      case 'pending':
+        return <Badge bg="warning" text="dark">Chờ xác nhận</Badge>;
+      case 'confirmed':
+        return <Badge bg="success">Đã xác nhận</Badge>;
+      case 'cancelled':
+        return <Badge bg="danger">Đã hủy</Badge>;
+      case 'cancelled_by_customer':
+        return <Badge bg="danger">Khách hàng đã hủy</Badge>;
+      case 'completed':
+        return <Badge bg="info">Hoàn thành</Badge>;
+      case 'no-show':
+        return <Badge bg="dark">Không đến</Badge>;
+      default:
+        return <Badge bg="secondary">{status}</Badge>;
+    }
   };
   
   const formatDateTime = (date, time) => {
@@ -476,7 +481,7 @@ const BookingManagement = () => {
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <Table hover className="align-middle">
+                  <Table responsive hover>
                     <thead>
                       <tr>
                         <th>Khách hàng</th>
@@ -494,22 +499,25 @@ const BookingManagement = () => {
                             <div>{booking.customerName}</div>
                             <small className="text-muted">{booking.customerPhone}</small>
                           </td>
-                          <td>{formatDateTime(booking.date, booking.time)}</td>
-                          <td>{booking.numberOfGuests}</td>
+                          <td>
+                            <div>{formatDateTime(booking.date, booking.time)}</div>
+                          </td>
+                          <td className="text-center">
+                            <FaUsers className="me-1" /> {booking.numberOfGuests}
+                          </td>
                           <td>
                             {booking.tableAssigned ? (
-                              <Button 
-                                variant="link" 
-                                className="p-0 text-decoration-none"
-                                onClick={() => handleTableClick(booking.tableAssigned._id)}
-                              >
-                                <Badge bg="info" className="d-flex align-items-center">
-                                  <FaTable className="me-1" />
-                                  {booking.tableAssigned.name}
-                                </Badge>
-                              </Button>
+                              <div>
+                                <FaTable className="me-1 text-success" /> 
+                                {booking.tableAssigned.name}
+                                {booking.tableAssigned.capacity && (
+                                  <small className="text-muted d-block">
+                                    Sức chứa: {booking.tableAssigned.capacity} người
+                                  </small>
+                                )}
+                              </div>
                             ) : (
-                              <Badge bg="warning">Chưa gán bàn</Badge>
+                              <span className="text-muted">Chưa gán bàn</span>
                             )}
                           </td>
                           <td>{getStatusBadge(booking.status)}</td>

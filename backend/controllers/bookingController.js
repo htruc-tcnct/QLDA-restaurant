@@ -1,8 +1,11 @@
 const Booking = require("../models/Booking");
 const Table = require("../models/Table");
+const { User, Notification } = require("../models");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const mongoose = require("mongoose");
+const socketService = require("../services/socketService");
+const tableService = require("../services/tableService");
 
 // Utility function to check if restaurant is open at the given time
 const isRestaurantOpenAt = (time) => {
@@ -167,6 +170,73 @@ exports.createBooking = catchAsync(async (req, res, next) => {
 
   const booking = await Booking.create(bookingData);
 
+  // Create notifications for managers and waiters
+  try {
+    // Find all managers and waiters
+    const staffUsers = await User.find({
+      role: { $in: ["manager", "waiter"] },
+    });
+
+    // Format date for display
+    const bookingDate = new Date(date);
+    const formattedDate = bookingDate.toLocaleDateString("vi-VN");
+
+    // Create notification content
+    const notificationContent = `Đặt bàn mới: ${customerName} - ${formattedDate} ${time} - ${numberOfGuests} khách`;
+
+    // Create notifications in database for each staff user
+    const notificationPromises = staffUsers.map((user) => {
+      return Notification.create({
+        recipient: user._id,
+        type: "new_booking",
+        content: notificationContent,
+        relatedResource: {
+          type: "booking",
+          id: booking._id,
+        },
+        isRead: false,
+      });
+    });
+
+    await Promise.all(notificationPromises);
+
+    // Send real-time notifications via socket
+    const bookingData = {
+      _id: booking._id,
+      customerName,
+      date: formattedDate,
+      time,
+      numberOfGuests,
+      createdAt: new Date(),
+    };
+
+    // Emit to managers and waiters
+    await socketService.emitToRole("manager", "new_booking", {
+      notification: notificationContent,
+      booking: bookingData,
+      sound: true, // Flag to play sound
+    });
+
+    await socketService.emitToRole("waiter", "new_booking", {
+      notification: notificationContent,
+      booking: bookingData,
+      sound: true, // Flag to play sound
+    });
+
+    // Broadcast to all admins
+    socketService.broadcast("admin_notification", {
+      type: "new_booking",
+      message: notificationContent,
+      booking: bookingData,
+      sound: true,
+    });
+
+    console.log("Booking notifications sent successfully");
+  } catch (error) {
+    console.error("Error sending booking notifications:", error);
+    // Don't fail the request if notifications fail
+  }
+
   res.status(201).json({
     status: "success",
     data: {
@@ -326,9 +396,68 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
     return next(new AppError("Vui lòng cung cấp trạng thái mới", 400));
   }
 
+  // Lấy thông tin đặt bàn hiện tại
+  const currentBooking = await Booking.findById(req.params.id);
+  if (!currentBooking) {
+    return next(new AppError("Không tìm thấy đặt chỗ với ID này", 404));
+  }
+
   const updateData = { status };
 
-  if (tableAssigned) {
+  // Nếu xác nhận đặt bàn và không chỉ định bàn cụ thể, tự động tìm bàn phù hợp
+  if (
+    status === "confirmed" &&
+    !tableAssigned &&
+    !currentBooking.tableAssigned
+  ) {
+    try {
+      // Tìm bàn phù hợp với số lượng khách
+      const suitableTable = await tableService.findSuitableTable(
+        currentBooking.numberOfGuests,
+        currentBooking.date,
+        currentBooking.time
+      );
+
+      if (suitableTable) {
+        console.log(
+          `Đã tìm thấy bàn phù hợp: ${suitableTable.name} (sức chứa: ${suitableTable.capacity})`
+        );
+        updateData.tableAssigned = suitableTable._id;
+
+        // Cập nhật trạng thái bàn thành 'reserved'
+        await tableService.updateTableStatus(suitableTable._id, "reserved");
+
+        // Tạo thông báo về việc đã tự động gán bàn
+        await Notification.create({
+          recipient: req.user._id,
+          type: "system",
+          content: `Hệ thống đã tự động gán bàn ${suitableTable.name} (sức chứa: ${suitableTable.capacity}) cho đặt bàn của khách hàng ${currentBooking.customerName}`,
+          relatedResource: {
+            type: "booking",
+            id: currentBooking._id,
+          },
+        });
+      } else {
+        console.log(
+          `Không tìm thấy bàn phù hợp cho ${currentBooking.numberOfGuests} khách`
+        );
+
+        // Tạo thông báo nếu không tìm thấy bàn phù hợp
+        await Notification.create({
+          recipient: req.user._id,
+          type: "system",
+          content: `Không tìm thấy bàn phù hợp cho đặt bàn của khách hàng ${currentBooking.customerName} (${currentBooking.numberOfGuests} khách). Vui lòng gán bàn thủ công.`,
+          relatedResource: {
+            type: "booking",
+            id: currentBooking._id,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi khi tìm bàn phù hợp:", error);
+    }
+  } else if (tableAssigned) {
+    // Nếu đã chỉ định bàn cụ thể
     // Check if tableAssigned is a string (like "table2") and handle accordingly
     if (
       typeof tableAssigned === "string" &&
@@ -339,12 +468,14 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
 
       if (table) {
         updateData.tableAssigned = table._id;
+        // Cập nhật trạng thái bàn thành 'reserved'
+        await tableService.updateTableStatus(table._id, "reserved");
       } else {
         // Create a new table if it doesn't exist
         const newTable = await Table.create({
           tableNumber: tableAssigned,
           name: `Table ${tableAssigned.replace("table", "")}`,
-          capacity: 4, // Default capacity
+          capacity: Math.max(4, currentBooking.numberOfGuests), // Đặt sức chứa tối thiểu là 4 hoặc số lượng khách
         });
 
         updateData.tableAssigned = newTable._id;
@@ -352,6 +483,8 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
     } else {
       // It's already a valid ObjectId, use as is
       updateData.tableAssigned = tableAssigned;
+      // Cập nhật trạng thái bàn thành 'reserved'
+      await tableService.updateTableStatus(tableAssigned, "reserved");
     }
   }
 
@@ -362,10 +495,90 @@ exports.updateBookingStatus = catchAsync(async (req, res, next) => {
   const booking = await Booking.findByIdAndUpdate(req.params.id, updateData, {
     new: true,
     runValidators: true,
-  });
+  }).populate("tableAssigned");
 
   if (!booking) {
     return next(new AppError("Không tìm thấy đặt chỗ với ID này", 404));
+  }
+
+  // Gửi thông báo cho khách hàng khi xác nhận đặt bàn
+  if (status === "confirmed") {
+    try {
+      // Tạo thông báo cho khách hàng
+      if (currentBooking.customer) {
+        await Notification.create({
+          recipient: currentBooking.customer,
+          type: "booking_reminder",
+          content: `Đặt bàn của bạn đã được xác nhận. ${
+            booking.tableAssigned
+              ? `Bàn của bạn: ${booking.tableAssigned.name}`
+              : ""
+          }`,
+          relatedResource: {
+            type: "booking",
+            id: booking._id,
+          },
+        });
+      }
+
+      // Gửi thông báo qua socket nếu khách hàng đang online
+      if (currentBooking.customer) {
+        socketService.emitToUser(
+          currentBooking.customer.toString(),
+          "booking_confirmed",
+          {
+            bookingId: booking._id,
+            message: `Đặt bàn của bạn đã được xác nhận. ${
+              booking.tableAssigned
+                ? `Bàn của bạn: ${booking.tableAssigned.name}`
+                : ""
+            }`,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi thông báo xác nhận đặt bàn:", error);
+    }
+  }
+
+  // Gửi thông báo cho khách hàng khi xác nhận đặt bàn
+  if (status === "confirmed") {
+    try {
+      // Tạo thông báo cho khách hàng
+      if (currentBooking.customer) {
+        await Notification.create({
+          recipient: currentBooking.customer,
+          type: "booking_reminder",
+          content: `Đặt bàn của bạn đã được xác nhận. ${
+            booking.tableAssigned
+              ? `Bàn của bạn: ${booking.tableAssigned.name}`
+              : ""
+          }`,
+          relatedResource: {
+            type: "booking",
+            id: booking._id,
+          },
+        });
+      }
+
+      // Gửi thông báo qua socket nếu khách hàng đang online
+      if (currentBooking.customer) {
+        socketService.emitToUser(
+          currentBooking.customer.toString(),
+          "booking_confirmed",
+          {
+            bookingId: booking._id,
+            message: `Đặt bàn của bạn đã được xác nhận. ${
+              booking.tableAssigned
+                ? `Bàn của bạn: ${booking.tableAssigned.name}`
+                : ""
+            }`,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi thông báo xác nhận đặt bàn:", error);
+    }
   }
 
   res.status(200).json({
@@ -393,7 +606,7 @@ exports.cancelBookingByCustomer = catchAsync(async (req, res, next) => {
   }
 
   // Check if the booking is in a status that can be cancelled
-  if (!["pending_confirmation", "confirmed"].includes(booking.status)) {
+  if (!["pending", "confirmed"].includes(booking.status)) {
     return next(
       new AppError("Đặt chỗ này không thể hủy do đã có trạng thái khác", 400)
     );

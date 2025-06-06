@@ -1,34 +1,34 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const orderItemSchema = new mongoose.Schema(
   {
     menuItem: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'MenuItem',
-      required: [true, 'Món ăn là bắt buộc']
+      ref: "MenuItem",
+      required: [true, "Món ăn là bắt buộc"],
     },
     quantity: {
       type: Number,
-      required: [true, 'Số lượng là bắt buộc'],
-      min: [1, 'Số lượng tối thiểu là 1']
+      required: [true, "Số lượng là bắt buộc"],
+      min: [1, "Số lượng tối thiểu là 1"],
     },
     priceAtOrder: {
       type: Number,
-      required: [true, 'Giá tại thời điểm đặt là bắt buộc']
+      required: [true, "Giá tại thời điểm đặt là bắt buộc"],
     },
     notes: {
       type: String,
-      trim: true
+      trim: true,
     },
     status: {
       type: String,
-      enum: ['pending', 'served', 'cancelled_item'],
-      default: 'pending'
-    }
+      enum: ["pending", "served", "cancelled_item"],
+      default: "pending",
+    },
   },
   {
     _id: true,
-    timestamps: false
+    timestamps: false,
   }
 );
 
@@ -37,13 +37,13 @@ const splitBillItemSchema = new mongoose.Schema(
     items: [
       {
         orderItem: {
-          type: mongoose.Schema.Types.ObjectId
+          type: mongoose.Schema.Types.ObjectId,
         },
         quantity: {
           type: Number,
-          min: 1
-        }
-      }
+          min: 1,
+        },
+      },
     ],
     subTotal: Number,
     taxAmount: Number,
@@ -52,14 +52,14 @@ const splitBillItemSchema = new mongoose.Schema(
     paymentMethod: String,
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'refunded'],
-      default: 'pending'
+      enum: ["pending", "paid", "refunded"],
+      default: "pending",
     },
-    paidAt: Date
+    paidAt: Date,
   },
   {
     _id: true,
-    timestamps: true
+    timestamps: true,
   }
 );
 
@@ -67,101 +67,98 @@ const orderSchema = new mongoose.Schema(
   {
     table: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Table'
+      ref: "Table",
     },
     booking: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Booking'
+      ref: "Booking",
     },
     customer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: "User",
     },
     waiter: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Nhân viên phục vụ là bắt buộc']
+      ref: "User",
+      required: [true, "Nhân viên phục vụ là bắt buộc"],
     },
     items: [orderItemSchema],
     subTotal: {
       type: Number,
-      required: [true, 'Tổng tiền trước thuế là bắt buộc']
+      required: [true, "Tổng tiền trước thuế là bắt buộc"],
     },
     discountAmount: {
       type: Number,
-      default: 0
+      default: 0,
     },
     discountPercentage: {
       type: Number,
-      default: 0
+      default: 0,
     },
-    appliedPromotion: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Promotion'
-    },
-    promotionCode: {
+    promoCode: {
       type: String,
-      trim: true
+      default: null,
     },
-    promotionDiscountAmount: {
-      type: Number,
-      default: 0
+    promoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Promotion",
+      default: null,
     },
     taxRate: {
       type: Number,
-      default: 0
+      default: 0,
     },
     taxAmount: {
       type: Number,
-      default: 0
+      default: 0,
     },
     totalAmount: {
       type: Number,
-      required: [true, 'Tổng tiền cuối cùng là bắt buộc']
+      required: [true, "Tổng tiền cuối cùng là bắt buộc"],
     },
     orderStatus: {
       type: String,
       enum: [
-        'pending_confirmation',
-        'confirmed_by_customer',
-        'partially_served',
-        'fully_served',
-        'payment_pending',
-        'paid',
-        'cancelled_order'
+        "pending_confirmation",
+        "confirmed_by_customer",
+        "partially_served",
+        "fully_served",
+        "payment_pending",
+        "paid",
+        "cancelled_order",
       ],
-      default: 'pending_confirmation'
+      default: "pending_confirmation",
     },
     orderType: {
       type: String,
-      enum: ['dine-in', 'takeaway', 'delivery'],
-      default: 'dine-in'
+      enum: ["dine-in", "takeaway", "delivery"],
+      default: "dine-in",
     },
     paymentMethod: {
-      type: String
+      type: String,
     },
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'refunded'],
-      default: 'pending'
+      enum: ["pending", "paid", "refunded"],
+      default: "pending",
     },
     orderNotes: {
       type: String,
-      trim: true
+      trim: true,
     },
-    splitBillInfo: [splitBillItemSchema]
+    splitBillInfo: [splitBillItemSchema],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
 // Pre-save hook to validate and calculate totals
-orderSchema.pre('save', function (next) {
+orderSchema.pre("save", function (next) {
   try {
     // Validate order type and table
-    if (this.orderType === 'dine-in' && !this.table) {
-      throw new Error('Đơn hàng tại bàn phải có bàn');
+    if (this.orderType === "dine-in" && !this.table) {
+      throw new Error("Đơn hàng tại bàn phải có bàn");
     }
 
     // Calculate subTotal if items exist
@@ -178,13 +175,20 @@ orderSchema.pre('save', function (next) {
     }
 
     // Calculate tax amount (on subtotal minus manual discount and promotion discount)
-    const taxableAmount = this.subTotal - this.discountAmount - this.promotionDiscountAmount;
+    const taxableAmount =
+      this.subTotal - this.discountAmount - this.promotionDiscountAmount;
     if (this.taxRate > 0) {
       this.taxAmount = Math.max(0, taxableAmount * this.taxRate);
     }
 
     // Calculate total amount
-    this.totalAmount = Math.max(0, this.subTotal - this.discountAmount - this.promotionDiscountAmount + this.taxAmount);
+    this.totalAmount = Math.max(
+      0,
+      this.subTotal -
+        this.discountAmount -
+        this.promotionDiscountAmount +
+        this.taxAmount
+    );
 
     next();
   } catch (error) {
@@ -193,7 +197,7 @@ orderSchema.pre('save', function (next) {
 });
 
 // Create virtual to get total number of items
-orderSchema.virtual('itemCount').get(function () {
+orderSchema.virtual("itemCount").get(function () {
   return this.items.reduce((total, item) => total + item.quantity, 0);
 });
 
@@ -201,13 +205,14 @@ orderSchema.virtual('itemCount').get(function () {
 orderSchema.methods.addItem = async function (itemData) {
   // Check if item already exists
   const existingItemIndex = this.items.findIndex(
-    item => item.menuItem.toString() === itemData.menuItem.toString()
+    (item) => item.menuItem.toString() === itemData.menuItem.toString()
   );
 
   if (existingItemIndex > -1) {
     // Update existing item
     this.items[existingItemIndex].quantity += itemData.quantity;
-    this.items[existingItemIndex].notes = itemData.notes || this.items[existingItemIndex].notes;
+    this.items[existingItemIndex].notes =
+      itemData.notes || this.items[existingItemIndex].notes;
   } else {
     // Add new item
     this.items.push(itemData);
@@ -222,9 +227,9 @@ orderSchema.methods.updateStatus = async function (newStatus, itemsStatus) {
 
   // If itemsStatus is provided, update status for those items
   if (itemsStatus && itemsStatus.length > 0) {
-    itemsStatus.forEach(update => {
+    itemsStatus.forEach((update) => {
       const itemIndex = this.items.findIndex(
-        item => item._id.toString() === update.itemId.toString()
+        (item) => item._id.toString() === update.itemId.toString()
       );
       if (itemIndex > -1) {
         this.items[itemIndex].status = update.status;
@@ -255,6 +260,6 @@ orderSchema.methods.applyPromotion = async function (promotion) {
   return this.save();
 };
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.model("Order", orderSchema);
 
-module.exports = Order; 
+module.exports = Order;

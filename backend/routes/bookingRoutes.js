@@ -22,7 +22,7 @@ router.put(
 );
 
 // Staff/Admin routes
-router.use(authController.restrictTo("staff", "manager", "admin"));
+router.use(authController.restrictTo("waiter", "staff", "manager", "admin"));
 
 router.route("/").get(bookingController.getAllBookings);
 

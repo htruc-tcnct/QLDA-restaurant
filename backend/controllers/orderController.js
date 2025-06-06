@@ -1,9 +1,9 @@
-const Order = require('../models/Order');
-const Table = require('../models/Table');
-const MenuItem = require('../models/MenuItem');
-const Promotion = require('../models/Promotion');
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+const Order = require("../models/Order");
+const Table = require("../models/Table");
+const MenuItem = require("../models/MenuItem");
+const Promotion = require("../models/Promotion");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
 
 // @desc    Create new order
 // @route   POST /api/v1/orders
@@ -13,11 +13,11 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 
   // Validate basic input
   if (!items || !items.length) {
-    return next(new AppError('Đơn hàng phải có ít nhất một món', 400));
+    return next(new AppError("Đơn hàng phải có ít nhất một món", 400));
   }
 
-  if (orderType === 'dine-in' && !tableId) {
-    return next(new AppError('Đơn hàng tại bàn phải có bàn', 400));
+  if (orderType === "dine-in" && !tableId) {
+    return next(new AppError("Đơn hàng tại bàn phải có bàn", 400));
   }
 
   // Check table availability if it's a dine-in order
@@ -25,25 +25,27 @@ exports.createOrder = catchAsync(async (req, res, next) => {
     const table = await Table.findById(tableId);
 
     if (!table) {
-      return next(new AppError('Không tìm thấy bàn với ID này', 404));
+      return next(new AppError("Không tìm thấy bàn với ID này", 404));
     }
 
-    if (table.status !== 'available' && table.status !== 'reserved') {
-      return next(new AppError('Bàn không khả dụng', 400));
+    if (table.status !== "available" && table.status !== "reserved") {
+      return next(new AppError("Bàn không khả dụng", 400));
     }
   }
 
   // Get current prices for all menu items
-  const menuItemIds = items.map(item => item.menuItem);
+  const menuItemIds = items.map((item) => item.menuItem);
   const menuItems = await MenuItem.find({ _id: { $in: menuItemIds } });
 
   if (menuItems.length !== menuItemIds.length) {
-    return next(new AppError('Một số món ăn không tồn tại', 400));
+    return next(new AppError("Một số món ăn không tồn tại", 400));
   }
 
   // Create order items with current prices
-  const orderItems = items.map(item => {
-    const menuItem = menuItems.find(mi => mi._id.toString() === item.menuItem.toString());
+  const orderItems = items.map((item) => {
+    const menuItem = menuItems.find(
+      (mi) => mi._id.toString() === item.menuItem.toString()
+    );
 
     if (!menuItem) {
       throw new AppError(`Không tìm thấy món ăn với ID: ${item.menuItem}`, 400);
@@ -53,14 +55,14 @@ exports.createOrder = catchAsync(async (req, res, next) => {
       menuItem: item.menuItem,
       quantity: item.quantity,
       priceAtOrder: menuItem.price,
-      notes: item.notes || '',
-      status: 'pending'
+      notes: item.notes || "",
+      status: "pending",
     };
   });
 
   // Calculate initial totals
   const subTotal = orderItems.reduce(
-    (total, item) => total + (item.priceAtOrder * item.quantity),
+    (total, item) => total + item.priceAtOrder * item.quantity,
     0
   );
 
@@ -78,24 +80,24 @@ exports.createOrder = catchAsync(async (req, res, next) => {
     taxRate,
     taxAmount,
     totalAmount,
-    orderType: orderType || 'dine-in',
-    orderNotes: orderNotes || '',
-    orderStatus: 'pending_confirmation'
+    orderType: orderType || "dine-in",
+    orderNotes: orderNotes || "",
+    orderStatus: "pending_confirmation",
   });
 
   // Update table status if it's a dine-in order
   if (tableId) {
     await Table.findByIdAndUpdate(tableId, {
-      status: 'occupied',
-      currentOrderId: order._id
+      status: "occupied",
+      currentOrderId: order._id,
     });
   }
 
   res.status(201).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -130,7 +132,7 @@ exports.getAllOrders = catchAsync(async (req, res, next) => {
   if (req.query.startDate && req.query.endDate) {
     filter.createdAt = {
       $gte: new Date(req.query.startDate),
-      $lte: new Date(req.query.endDate)
+      $lte: new Date(req.query.endDate),
     };
   }
 
@@ -146,24 +148,24 @@ exports.getAllOrders = catchAsync(async (req, res, next) => {
     .skip(skip)
     .limit(limit)
     .populate([
-      { path: 'table', select: 'name location' },
-      { path: 'waiter', select: 'fullName' },
-      { path: 'customer', select: 'fullName email' },
-      { path: 'items.menuItem', select: 'name category price' }
+      { path: "table", select: "name location" },
+      { path: "waiter", select: "fullName" },
+      { path: "customer", select: "fullName email" },
+      { path: "items.menuItem", select: "name category price" },
     ]);
 
   // Get total count
   const totalOrders = await Order.countDocuments(filter);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     results: orders.length,
     totalPages: Math.ceil(totalOrders / limit),
     currentPage: page,
     totalOrders,
     data: {
-      orders
-    }
+      orders,
+    },
   });
 });
 
@@ -177,34 +179,33 @@ exports.getCurrentTableOrder = catchAsync(async (req, res, next) => {
   const table = await Table.findById(tableId);
 
   if (!table) {
-    return next(new AppError('Không tìm thấy bàn với ID này', 404));
+    return next(new AppError("Không tìm thấy bàn với ID này", 404));
   }
 
   if (!table.currentOrderId) {
-    return next(new AppError('Bàn này không có đơn hàng đang hoạt động', 404));
+    return next(new AppError("Bàn này không có đơn hàng đang hoạt động", 404));
   }
 
   // Get the current order
-  const order = await Order.findById(table.currentOrderId)
-    .populate([
-      { path: 'table', select: 'name location' },
-      { path: 'waiter', select: 'fullName' },
-      { path: 'customer', select: 'fullName email' },
-      { path: 'items.menuItem', select: 'name category price imageUrls' }
-    ]);
+  const order = await Order.findById(table.currentOrderId).populate([
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "customer", select: "fullName email" },
+    { path: "items.menuItem", select: "name category price imageUrls" },
+  ]);
 
   if (!order) {
     // Handle inconsistency - table references a non-existent order
     table.currentOrderId = null;
     await table.save();
-    return next(new AppError('Không tìm thấy đơn hàng của bàn này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng của bàn này", 404));
   }
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -212,23 +213,22 @@ exports.getCurrentTableOrder = catchAsync(async (req, res, next) => {
 // @route   GET /api/v1/orders/:id
 // @access  Private (waiter, manager)
 exports.getOrder = catchAsync(async (req, res, next) => {
-  const order = await Order.findById(req.params.id)
-    .populate([
-      { path: 'table', select: 'name location' },
-      { path: 'waiter', select: 'fullName' },
-      { path: 'customer', select: 'fullName email' },
-      { path: 'items.menuItem', select: 'name category price imageUrls' }
-    ]);
+  const order = await Order.findById(req.params.id).populate([
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "customer", select: "fullName email" },
+    { path: "items.menuItem", select: "name category price imageUrls" },
+  ]);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -239,32 +239,41 @@ exports.addItemToOrder = catchAsync(async (req, res, next) => {
   const { menuItemId, quantity, notes, status } = req.body;
 
   if (!menuItemId || !quantity) {
-    return next(new AppError('Vui lòng cung cấp ID món ăn và số lượng', 400));
+    return next(new AppError("Vui lòng cung cấp ID món ăn và số lượng", 400));
   }
 
   // Find order
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order status allows adding items
-  const allowedStatuses = ['pending_confirmation', 'confirmed_by_customer', 'partially_served'];
+  const allowedStatuses = [
+    "pending_confirmation",
+    "confirmed_by_customer",
+    "partially_served",
+  ];
   if (!allowedStatuses.includes(order.orderStatus)) {
-    return next(new AppError('Không thể thêm món vào đơn hàng này do đã qua bước xử lý', 400));
+    return next(
+      new AppError(
+        "Không thể thêm món vào đơn hàng này do đã qua bước xử lý",
+        400
+      )
+    );
   }
 
   // Get menu item with current price
   const menuItem = await MenuItem.findById(menuItemId);
 
   if (!menuItem) {
-    return next(new AppError('Không tìm thấy món ăn với ID này', 404));
+    return next(new AppError("Không tìm thấy món ăn với ID này", 404));
   }
 
   // Check if item already exists in order
   const existingItemIndex = order.items.findIndex(
-    item => item.menuItem.toString() === menuItemId
+    (item) => item.menuItem.toString() === menuItemId
   );
 
   if (existingItemIndex > -1) {
@@ -279,8 +288,8 @@ exports.addItemToOrder = catchAsync(async (req, res, next) => {
       menuItem: menuItemId,
       quantity,
       priceAtOrder: menuItem.price,
-      notes: notes || '',
-      status: status || 'pending' // Use provided status or default to 'pending'
+      notes: notes || "",
+      status: status || "pending", // Use provided status or default to 'pending'
     });
   }
 
@@ -289,16 +298,16 @@ exports.addItemToOrder = catchAsync(async (req, res, next) => {
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price imageUrls' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price imageUrls" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -313,22 +322,30 @@ exports.updateOrderItem = catchAsync(async (req, res, next) => {
   const order = await Order.findById(id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order status allows updating items
-  const allowedStatuses = ['pending_confirmation', 'confirmed_by_customer', 'partially_served', 'fully_served', 'payment_pending'];
+  const allowedStatuses = [
+    "pending_confirmation",
+    "confirmed_by_customer",
+    "partially_served",
+    "fully_served",
+    "payment_pending",
+  ];
   if (!allowedStatuses.includes(order.orderStatus)) {
-    return next(new AppError('Không thể cập nhật món do đơn hàng đã qua bước xử lý', 400));
+    return next(
+      new AppError("Không thể cập nhật món do đơn hàng đã qua bước xử lý", 400)
+    );
   }
 
   // Find item in order
   const itemIndex = order.items.findIndex(
-    item => item._id.toString() === orderItemId
+    (item) => item._id.toString() === orderItemId
   );
 
   if (itemIndex === -1) {
-    return next(new AppError('Không tìm thấy món ăn trong đơn hàng', 404));
+    return next(new AppError("Không tìm thấy món ăn trong đơn hàng", 404));
   }
 
   // Update item
@@ -345,16 +362,16 @@ exports.updateOrderItem = catchAsync(async (req, res, next) => {
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price imageUrls' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price imageUrls" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -368,22 +385,28 @@ exports.removeOrderItem = catchAsync(async (req, res, next) => {
   const order = await Order.findById(id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order status allows removing items
-  const allowedStatuses = ['pending_confirmation', 'confirmed_by_customer', 'partially_served'];
+  const allowedStatuses = [
+    "pending_confirmation",
+    "confirmed_by_customer",
+    "partially_served",
+  ];
   if (!allowedStatuses.includes(order.orderStatus)) {
-    return next(new AppError('Không thể xóa món do đơn hàng đã qua bước xử lý', 400));
+    return next(
+      new AppError("Không thể xóa món do đơn hàng đã qua bước xử lý", 400)
+    );
   }
 
   // Find item index
   const itemIndex = order.items.findIndex(
-    item => item._id.toString() === orderItemId
+    (item) => item._id.toString() === orderItemId
   );
 
   if (itemIndex === -1) {
-    return next(new AppError('Không tìm thấy món ăn trong đơn hàng', 404));
+    return next(new AppError("Không tìm thấy món ăn trong đơn hàng", 404));
   }
 
   // Remove item
@@ -391,7 +414,7 @@ exports.removeOrderItem = catchAsync(async (req, res, next) => {
 
   // If no items left, return error
   if (order.items.length === 0) {
-    return next(new AppError('Đơn hàng phải có ít nhất một món', 400));
+    return next(new AppError("Đơn hàng phải có ít nhất một món", 400));
   }
 
   // Save the updated order
@@ -399,16 +422,16 @@ exports.removeOrderItem = catchAsync(async (req, res, next) => {
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price imageUrls' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price imageUrls" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -419,29 +442,43 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   const { status, itemsStatus } = req.body;
 
   if (!status) {
-    return next(new AppError('Vui lòng cung cấp trạng thái mới', 400));
+    return next(new AppError("Vui lòng cung cấp trạng thái mới", 400));
   }
 
   // Find order
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Validate status transition
   const validTransitions = {
-    'pending_confirmation': ['confirmed_by_customer', 'partially_served', 'fully_served', 'cancelled_order'],
-    'confirmed_by_customer': ['partially_served', 'fully_served', 'cancelled_order'],
-    'partially_served': ['fully_served', 'payment_pending', 'cancelled_order'],
-    'fully_served': ['partially_served', 'payment_pending', 'cancelled_order'],
-    'payment_pending': ['paid', 'cancelled_order'],
-    'paid': [],  // Terminal state, no further transitions
-    'cancelled_order': [] // Terminal state
+    pending_confirmation: [
+      "confirmed_by_customer",
+      "partially_served",
+      "fully_served",
+      "cancelled_order",
+    ],
+    confirmed_by_customer: [
+      "partially_served",
+      "fully_served",
+      "cancelled_order",
+    ],
+    partially_served: ["fully_served", "payment_pending", "cancelled_order"],
+    fully_served: ["partially_served", "payment_pending", "cancelled_order"],
+    payment_pending: ["paid", "cancelled_order"],
+    paid: [], // Terminal state, no further transitions
+    cancelled_order: [], // Terminal state
   };
 
   if (!validTransitions[order.orderStatus].includes(status)) {
-    return next(new AppError(`Không thể chuyển từ trạng thái ${order.orderStatus} sang ${status}`, 400));
+    return next(
+      new AppError(
+        `Không thể chuyển từ trạng thái ${order.orderStatus} sang ${status}`,
+        400
+      )
+    );
   }
 
   // Update order status
@@ -449,9 +486,9 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 
   // Update items status if provided
   if (itemsStatus && Array.isArray(itemsStatus)) {
-    itemsStatus.forEach(update => {
+    itemsStatus.forEach((update) => {
       const itemIndex = order.items.findIndex(
-        item => item._id.toString() === update.itemId
+        (item) => item._id.toString() === update.itemId
       );
 
       if (itemIndex > -1) {
@@ -464,28 +501,28 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   await order.save();
 
   // Handle special status updates
-  if (status === 'paid') {
+  if (status === "paid") {
     // Update table status if this is a dine-in order
-    if (order.orderType === 'dine-in' && order.table) {
+    if (order.orderType === "dine-in" && order.table) {
       await Table.findByIdAndUpdate(order.table, {
-        status: 'needs_cleaning',
-        currentOrderId: null
+        status: "needs_cleaning",
+        currentOrderId: null,
       });
     }
   }
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -493,30 +530,34 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 // @route   PUT /api/v1/orders/:id/apply-discount
 // @access  Private (waiter, manager)
 exports.applyDiscount = catchAsync(async (req, res, next) => {
-  const { discountAmount, discountPercentage } = req.body;
+  const { discountAmount, discountPercentage, promoCode, promoId } = req.body;
 
   if (discountAmount === undefined && discountPercentage === undefined) {
-    return next(new AppError('Vui lòng cung cấp số tiền hoặc phần trăm giảm giá', 400));
+    return next(
+      new AppError("Vui lòng cung cấp số tiền hoặc phần trăm giảm giá", 400)
+    );
   }
 
   // Find order
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order is in a state where discount can be applied
   const allowedStatuses = [
-    'pending_confirmation',
-    'confirmed_by_customer',
-    'partially_served',
-    'fully_served',
-    'payment_pending'
+    "pending_confirmation",
+    "confirmed_by_customer",
+    "partially_served",
+    "fully_served",
+    "payment_pending",
   ];
 
   if (!allowedStatuses.includes(order.orderStatus)) {
-    return next(new AppError('Không thể áp dụng giảm giá cho đơn hàng này', 400));
+    return next(
+      new AppError("Không thể áp dụng giảm giá cho đơn hàng này", 400)
+    );
   }
 
   // Check if user is manager if discount is large
@@ -524,8 +565,13 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
     (discountPercentage && discountPercentage > 15) ||
     (discountAmount && discountAmount > order.subTotal * 0.15);
 
-  if (isLargeDiscount && req.user.role !== 'manager') {
-    return next(new AppError('Giảm giá lớn chỉ có thể được áp dụng bởi quản lý', 403));
+  if (isLargeDiscount && req.user.role !== "manager" && !promoCode) {
+    return next(
+      new AppError(
+        "Giảm giá lớn chỉ có thể được áp dụng bởi quản lý hoặc mã khuyến mãi",
+        403
+      )
+    );
   }
 
   // Apply the discount
@@ -537,6 +583,15 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
     order.discountPercentage = (discountAmount / order.subTotal) * 100;
   }
 
+  // Lưu thông tin mã giảm giá nếu có
+  if (promoCode) {
+    order.promoCode = promoCode;
+
+    if (promoId) {
+      order.promoId = promoId;
+    }
+  }
+
   // Recalculate total
   order.totalAmount = order.subTotal - order.discountAmount + order.taxAmount;
 
@@ -545,16 +600,16 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -565,51 +620,59 @@ exports.checkoutOrder = catchAsync(async (req, res, next) => {
   const { paymentMethod } = req.body;
 
   if (!paymentMethod) {
-    return next(new AppError('Vui lòng cung cấp phương thức thanh toán', 400));
+    return next(new AppError("Vui lòng cung cấp phương thức thanh toán", 400));
   }
 
   // Find order
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order can be checked out
-  const allowedStatuses = ['pending_confirmation', 'confirmed_by_customer', 'partially_served', 'fully_served', 'payment_pending'];
+  const allowedStatuses = [
+    "pending_confirmation",
+    "confirmed_by_customer",
+    "partially_served",
+    "fully_served",
+    "payment_pending",
+  ];
   if (!allowedStatuses.includes(order.orderStatus)) {
-    return next(new AppError('Không thể thanh toán đơn hàng ở trạng thái này', 400));
+    return next(
+      new AppError("Không thể thanh toán đơn hàng ở trạng thái này", 400)
+    );
   }
 
   // Update order
   order.paymentMethod = paymentMethod;
-  order.paymentStatus = 'paid';
-  order.orderStatus = 'paid';
+  order.paymentStatus = "paid";
+  order.orderStatus = "paid";
 
   // Save the updated order
   await order.save();
 
   // Update table status if this is a dine-in order
-  if (order.orderType === 'dine-in' && order.table) {
+  if (order.orderType === "dine-in" && order.table) {
     await Table.findByIdAndUpdate(order.table, {
-      status: 'needs_cleaning',
-      currentOrderId: null
+      status: "needs_cleaning",
+      currentOrderId: null,
     });
   }
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'customer', select: 'fullName email' },
-    { path: 'items.menuItem', select: 'name category price' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "customer", select: "fullName email" },
+    { path: "items.menuItem", select: "name category price" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -621,43 +684,55 @@ exports.updateOrderItemStatus = catchAsync(async (req, res, next) => {
   const { id, orderItemId } = req.params;
 
   if (!status) {
-    return next(new AppError('Vui lòng cung cấp trạng thái mới cho món ăn', 400));
+    return next(
+      new AppError("Vui lòng cung cấp trạng thái mới cho món ăn", 400)
+    );
   }
 
   // Validate status
-  const validStatuses = ['pending', 'served', 'cancelled_item'];
+  const validStatuses = ["pending", "served", "cancelled_item"];
   if (!validStatuses.includes(status)) {
-    return next(new AppError('Trạng thái món ăn không hợp lệ', 400));
+    return next(new AppError("Trạng thái món ăn không hợp lệ", 400));
   }
 
   // Find order
   const order = await Order.findById(id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Find item in order
   const itemIndex = order.items.findIndex(
-    item => item._id.toString() === orderItemId
+    (item) => item._id.toString() === orderItemId
   );
 
   if (itemIndex === -1) {
-    return next(new AppError('Không tìm thấy món ăn trong đơn hàng', 404));
+    return next(new AppError("Không tìm thấy món ăn trong đơn hàng", 404));
   }
 
   // Update item status
   order.items[itemIndex].status = status;
 
   // Check if all items are served
-  const allServed = order.items.every(item => item.status === 'served');
-  const someServed = order.items.some(item => item.status === 'served');
+  const allServed = order.items.every((item) => item.status === "served");
+  const someServed = order.items.some((item) => item.status === "served");
 
   // Update order status based on item statuses
-  if (allServed && ['pending_confirmation', 'confirmed_by_customer'].includes(order.orderStatus)) {
-    order.orderStatus = 'fully_served';
-  } else if (someServed && ['pending_confirmation', 'confirmed_by_customer'].includes(order.orderStatus)) {
-    order.orderStatus = 'partially_served';
+  if (
+    allServed &&
+    ["pending_confirmation", "confirmed_by_customer"].includes(
+      order.orderStatus
+    )
+  ) {
+    order.orderStatus = "fully_served";
+  } else if (
+    someServed &&
+    ["pending_confirmation", "confirmed_by_customer"].includes(
+      order.orderStatus
+    )
+  ) {
+    order.orderStatus = "partially_served";
   }
 
   // Save the updated order
@@ -665,16 +740,16 @@ exports.updateOrderItemStatus = catchAsync(async (req, res, next) => {
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
 });
 
@@ -685,19 +760,19 @@ exports.deleteOrder = catchAsync(async (req, res, next) => {
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order can be deleted
-  if (order.orderStatus === 'paid') {
-    return next(new AppError('Không thể xóa đơn hàng đã thanh toán', 400));
+  if (order.orderStatus === "paid") {
+    return next(new AppError("Không thể xóa đơn hàng đã thanh toán", 400));
   }
 
   // If order is associated with a table, update the table
-  if (order.table && order.orderType === 'dine-in') {
+  if (order.table && order.orderType === "dine-in") {
     await Table.findByIdAndUpdate(order.table, {
-      status: 'available',
-      currentOrderId: null
+      status: "available",
+      currentOrderId: null,
     });
   }
 
@@ -705,8 +780,8 @@ exports.deleteOrder = catchAsync(async (req, res, next) => {
   await Order.findByIdAndDelete(req.params.id);
 
   res.status(204).json({
-    status: 'success',
-    data: null
+    status: "success",
+    data: null,
   });
 });
 
@@ -714,46 +789,45 @@ exports.deleteOrder = catchAsync(async (req, res, next) => {
 // @route   GET /api/v1/orders/:id/receipt
 // @access  Private (waiter, manager)
 exports.generateReceipt = catchAsync(async (req, res, next) => {
-  const order = await Order.findById(req.params.id)
-    .populate([
-      { path: 'table', select: 'name location' },
-      { path: 'waiter', select: 'fullName' },
-      { path: 'customer', select: 'fullName email phoneNumber' },
-      { path: 'items.menuItem', select: 'name category price' }
-    ]);
+  const order = await Order.findById(req.params.id).populate([
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "customer", select: "fullName email phoneNumber" },
+    { path: "items.menuItem", select: "name category price" },
+  ]);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Format the order data for the receipt
   const receiptData = {
     orderNumber: order.orderNumber || order._id.toString().substr(-6),
-    orderDate: new Date(order.createdAt).toLocaleString('vi-VN'),
-    customerName: order.customer ? order.customer.fullName : 'Khách vãng lai',
-    tableName: order.table ? order.table.name : 'Không áp dụng',
-    waiterName: order.waiter ? order.waiter.fullName : 'Không áp dụng',
-    items: order.items.map(item => ({
+    orderDate: new Date(order.createdAt).toLocaleString("vi-VN"),
+    customerName: order.customer ? order.customer.fullName : "Khách vãng lai",
+    tableName: order.table ? order.table.name : "Không áp dụng",
+    waiterName: order.waiter ? order.waiter.fullName : "Không áp dụng",
+    items: order.items.map((item) => ({
       name: item.menuItem.name,
       quantity: item.quantity,
       price: item.priceAtOrder,
-      total: item.quantity * item.priceAtOrder
+      total: item.quantity * item.priceAtOrder,
     })),
     subTotal: order.subTotal,
     discountAmount: order.discountAmount || 0,
     taxAmount: order.taxAmount,
     totalAmount: order.totalAmount,
-    paymentMethod: order.paymentMethod || 'Chưa thanh toán',
-    paymentStatus: order.paymentStatus || 'pending',
+    paymentMethod: order.paymentMethod || "Chưa thanh toán",
+    paymentStatus: order.paymentStatus || "pending",
     orderStatus: order.orderStatus,
-    notes: order.orderNotes || ''
+    notes: order.orderNotes || "",
   };
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      receipt: receiptData
-    }
+      receipt: receiptData,
+    },
   });
 });
 
@@ -764,42 +838,46 @@ exports.applyPromotion = catchAsync(async (req, res, next) => {
   const { promotionCode } = req.body;
 
   if (!promotionCode) {
-    return next(new AppError('Vui lòng cung cấp mã khuyến mãi', 400));
+    return next(new AppError("Vui lòng cung cấp mã khuyến mãi", 400));
   }
 
   // Find order
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   // Check if order status allows applying promotion
   const allowedStatuses = [
-    'pending_confirmation',
-    'confirmed_by_customer',
-    'partially_served',
-    'fully_served',
-    'payment_pending'
+    "pending_confirmation",
+    "confirmed_by_customer",
+    "partially_served",
+    "fully_served",
+    "payment_pending",
   ];
 
   if (!allowedStatuses.includes(order.orderStatus)) {
-    return next(new AppError('Không thể áp dụng khuyến mãi cho đơn hàng này', 400));
+    return next(
+      new AppError("Không thể áp dụng khuyến mãi cho đơn hàng này", 400)
+    );
   }
 
   // Check if promotion is already applied
   if (order.appliedPromotion) {
-    return next(new AppError('Đơn hàng đã áp dụng mã khuyến mãi khác', 400));
+    return next(new AppError("Đơn hàng đã áp dụng mã khuyến mãi khác", 400));
   }
 
   // Find promotion by code
   const promotion = await Promotion.findOne({
     code: promotionCode.toUpperCase(),
-    isActive: true
+    isActive: true,
   });
 
   if (!promotion) {
-    return next(new AppError('Mã khuyến mãi không tồn tại hoặc đã hết hạn', 404));
+    return next(
+      new AppError("Mã khuyến mãi không tồn tại hoặc đã hết hạn", 404)
+    );
   }
 
   try {
@@ -812,25 +890,24 @@ exports.applyPromotion = catchAsync(async (req, res, next) => {
 
     // Populate fields for response
     await order.populate([
-      { path: 'table', select: 'name location' },
-      { path: 'waiter', select: 'fullName' },
-      { path: 'appliedPromotion', select: 'name type value' },
-      { path: 'items.menuItem', select: 'name category price' }
+      { path: "table", select: "name location" },
+      { path: "waiter", select: "fullName" },
+      { path: "appliedPromotion", select: "name type value" },
+      { path: "items.menuItem", select: "name category price" },
     ]);
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         order,
         promotionApplied: {
           name: promotion.name,
           discountAmount: order.promotionDiscountAmount,
           originalTotal: order.subTotal,
-          newTotal: order.totalAmount
-        }
-      }
+          newTotal: order.totalAmount,
+        },
+      },
     });
-
   } catch (error) {
     return next(new AppError(error.message, 400));
   }
@@ -844,11 +921,11 @@ exports.removePromotion = catchAsync(async (req, res, next) => {
   const order = await Order.findById(req.params.id);
 
   if (!order) {
-    return next(new AppError('Không tìm thấy đơn hàng với ID này', 404));
+    return next(new AppError("Không tìm thấy đơn hàng với ID này", 404));
   }
 
   if (!order.appliedPromotion) {
-    return next(new AppError('Đơn hàng chưa áp dụng mã khuyến mãi nào', 400));
+    return next(new AppError("Đơn hàng chưa áp dụng mã khuyến mãi nào", 400));
   }
 
   // Get promotion to decrease usage count
@@ -867,15 +944,15 @@ exports.removePromotion = catchAsync(async (req, res, next) => {
 
   // Populate fields for response
   await order.populate([
-    { path: 'table', select: 'name location' },
-    { path: 'waiter', select: 'fullName' },
-    { path: 'items.menuItem', select: 'name category price' }
+    { path: "table", select: "name location" },
+    { path: "waiter", select: "fullName" },
+    { path: "items.menuItem", select: "name category price" },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      order
-    }
+      order,
+    },
   });
-}); 
+});
