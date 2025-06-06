@@ -32,6 +32,8 @@ exports.createBooking = catchAsync(async (req, res, next) => {
     numberOfGuests,
     notes,
     preOrderedItems,
+    appliedPromotion,
+    paymentInfo,
   } = req.body;
 
   // Validate required fields
@@ -55,6 +57,16 @@ exports.createBooking = catchAsync(async (req, res, next) => {
     notes,
     preOrderedItems,
   };
+
+  // Add promotion info if provided
+  if (appliedPromotion) {
+    bookingData.appliedPromotion = appliedPromotion;
+  }
+
+  // Add payment info if provided
+  if (paymentInfo) {
+    bookingData.paymentInfo = paymentInfo;
+  }
 
   if (req.user) {
     bookingData.customer = req.user._id;
@@ -167,10 +179,16 @@ exports.createBooking = catchAsync(async (req, res, next) => {
 exports.getMyBookings = catchAsync(async (req, res, next) => {
   const bookings = await Booking.find({ customer: req.user._id })
     .sort({ date: -1, time: -1 })
-    .populate({
-      path: "preOrderedItems.menuItem",
-      select: "name price",
-    });
+    .populate([
+      {
+        path: "preOrderedItems.menuItem",
+        select: "name price",
+      },
+      {
+        path: "appliedPromotion.id",
+        select: "name code type value",
+      },
+    ]);
 
   res.status(200).json({
     status: "success",
@@ -508,8 +526,10 @@ exports.updateBooking = catchAsync(async (req, res, next) => {
 
         console.log(
           `Booking time: ${booking.time}, Request time: ${bookingTime}, Difference: ${timeDifferenceInMinutes} minutes`
-        ); // If the booking is within 60 minutes (1 hour), consider the table booked
-        if (timeDifferenceInMinutes < 60) {
+        );
+
+        // If the booking is within 45 minutes, consider the table booked
+        if (timeDifferenceInMinutes <= 45) {
           return {
             isBooked: true,
             booking: booking,

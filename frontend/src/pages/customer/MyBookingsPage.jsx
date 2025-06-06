@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import api from "../../services/api";
 import { toast } from "react-toastify";
+import { formatCurrency } from "../../utils/format";
 
 const MyBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -251,6 +252,72 @@ const MyBookingsPage = () => {
                           </ul>
                         </div>
                       )}
+
+                    {/* Promotion Info */}
+                    {booking.appliedPromotion && (
+                      <div className="mb-3">
+                        <strong>Khuyến mãi:</strong>
+                        <div className="alert alert-info py-2 mb-0 mt-1">
+                          <small>
+                            🎫 <strong>{booking.appliedPromotion.name}</strong>
+                            <br />
+                            Mã: {booking.appliedPromotion.code} | Giảm:{" "}
+                            {formatCurrency(
+                              booking.appliedPromotion.discountAmount
+                            )}
+                          </small>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Payment Info */}
+                    {booking.paymentInfo && (
+                      <div className="mb-3">
+                        <strong>Thông tin thanh toán:</strong>
+                        <div className="border rounded p-2 mt-1">
+                          <div className="d-flex justify-content-between">
+                            <small>Tạm tính:</small>
+                            <small>
+                              {formatCurrency(booking.paymentInfo.subtotal)}
+                            </small>
+                          </div>
+                          {booking.paymentInfo.discountAmount > 0 && (
+                            <div className="d-flex justify-content-between text-success">
+                              <small>Giảm giá:</small>
+                              <small>
+                                -
+                                {formatCurrency(
+                                  booking.paymentInfo.discountAmount
+                                )}
+                              </small>
+                            </div>
+                          )}
+                          <hr className="my-1" />
+                          <div className="d-flex justify-content-between fw-bold">
+                            <small>Tổng cộng:</small>
+                            <small className="text-primary">
+                              {formatCurrency(booking.paymentInfo.totalAmount)}
+                            </small>
+                          </div>
+                          <div className="mt-1">
+                            <small className="text-muted">
+                              Phương thức:{" "}
+                              {booking.paymentInfo.paymentMethod === "cash"
+                                ? "Tiền mặt"
+                                : booking.paymentInfo.paymentMethod === "card"
+                                ? "Thẻ"
+                                : booking.paymentInfo.paymentMethod ===
+                                  "transfer"
+                                ? "Chuyển khoản"
+                                : booking.paymentInfo.paymentMethod ===
+                                  "ewallet"
+                                ? "Ví điện tử"
+                                : booking.paymentInfo.paymentMethod}
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </Card.Body>
                   <Card.Footer>
                     {canCancelBooking(booking) ? (

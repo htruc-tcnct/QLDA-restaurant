@@ -63,7 +63,7 @@ const loginUser = async (req, res) => {
 
     // Check if login is email or username
     const isEmail = login.includes('@');
-    
+
     // Find user by email or username
     const user = await User.findOne(
       isEmail ? { email: login } : { username: login }
@@ -124,6 +124,67 @@ const getCurrentUser = async (req, res) => {
     });
   } catch (error) {
     res.status(500);
+    res.json({
+      message: error.message,
+      stack: process.env.NODE_ENV === 'production' ? null : error.stack,
+    });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+  try {
+    const { fullName, phoneNumber, email } = req.body;
+    const userId = req.user._id;
+
+    // Check if email is already taken by another user
+    if (email && email !== req.user.email) {
+      const emailExists = await User.findOne({
+        email: email,
+        _id: { $ne: userId }
+      });
+
+      if (emailExists) {
+        res.status(400);
+        throw new Error('Email đã được sử dụng bởi tài khoản khác');
+      }
+    }
+
+    // Update user profile
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        ...(fullName && { fullName }),
+        ...(phoneNumber && { phoneNumber }),
+        ...(email && { email }),
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedUser) {
+      res.status(404);
+      throw new Error('Không tìm thấy người dùng');
+    }
+
+    res.json({
+      _id: updatedUser._id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      fullName: updatedUser.fullName,
+      phoneNumber: updatedUser.phoneNumber,
+      role: updatedUser.role,
+      isActive: updatedUser.isActive,
+      loyaltyPoints: updatedUser.loyaltyPoints,
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt,
+    });
+  } catch (error) {
+    res.status(res.statusCode === 200 ? 500 : res.statusCode);
     res.json({
       message: error.message,
       stack: process.env.NODE_ENV === 'production' ? null : error.stack,
@@ -222,10 +283,11 @@ const restrictTo = (...roles) => {
   };
 };
 
-module.exports = { 
-  registerUser, 
-  loginUser, 
+module.exports = {
+  registerUser,
+  loginUser,
   getCurrentUser,
+  updateProfile,
   protect,
   protectOptional,
   restrictTo

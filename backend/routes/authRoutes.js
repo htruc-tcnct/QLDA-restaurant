@@ -4,6 +4,7 @@ const {
   registerUser,
   loginUser,
   getCurrentUser,
+  updateProfile,
 } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -15,5 +16,8 @@ router.post('/login', loginUser);
 
 // @route   GET /api/auth/me
 router.get('/me', protect, getCurrentUser);
+
+// @route   PUT /api/auth/profile
+router.put('/profile', protect, updateProfile);
 
 module.exports = router; 

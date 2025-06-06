@@ -11,6 +11,7 @@ dotenv.config();
 const MenuItem = require('./models/MenuItem');
 const User = require('./models/User');
 const Review = require('./models/Review');
+const Promotion = require('./models/Promotion');
 
 // Import database connection
 const connectDB = require('./config/db');
@@ -22,23 +23,27 @@ const menuItems = JSON.parse(
 const users = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'data', 'seed_user_data.json'), 'utf-8')
 );
+const promotions = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'data', 'seed_promotion_data.json'), 'utf-8')
+);
 
 // Import Data
 const importData = async () => {
   try {
     await connectDB();
-    
+
     // Clear existing data
     await MenuItem.deleteMany();
     await User.deleteMany();
     await Review.deleteMany();
-    
+    await Promotion.deleteMany();
+
     console.log('Existing data cleared');
-    
+
     // Import menu items
     await MenuItem.insertMany(menuItems);
     console.log('Menu items imported');
-    
+
     // Hash passwords before inserting users
     const usersWithHashedPasswords = await Promise.all(
       users.map(async (user) => {
@@ -47,11 +52,15 @@ const importData = async () => {
         return user;
       })
     );
-    
+
     // Import users
     await User.insertMany(usersWithHashedPasswords);
     console.log('Users imported');
-    
+
+    // Import promotions
+    await Promotion.insertMany(promotions);
+    console.log('Promotions imported');
+
     console.log('Data import completed');
     process.exit();
   } catch (error) {
@@ -64,12 +73,13 @@ const importData = async () => {
 const destroyData = async () => {
   try {
     await connectDB();
-    
+
     // Clear existing data
     await MenuItem.deleteMany();
     await User.deleteMany();
     await Review.deleteMany();
-    
+    await Promotion.deleteMany();
+
     console.log('All data destroyed');
     process.exit();
   } catch (error) {

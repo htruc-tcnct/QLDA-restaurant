@@ -28,7 +28,7 @@
     "email": "waiter_a@example.com",
     "username": "waiter_a",
     "password": "123456",
-    "role": "waiter",
+    "role": "staff",
     "phoneNumber": "0912345681"
   },
   {
@@ -36,7 +36,7 @@
     "email": "waiter_b@example.com",
     "username": "waiter_b",
     "password": "123456",
-    "role": "waiter",
+    "role": "staff",
     "phoneNumber": "0912345682"
   },
   {
@@ -44,7 +44,7 @@
     "email": "waiter_c@example.com",
     "username": "waiter_c",
     "password": "123456",
-    "role": "waiter",
+    "role": "staff",
     "phoneNumber": "0912345683"
   },
   {
@@ -92,4 +92,4 @@
     "phoneNumber": "0901234571",
     "loyaltyPoints": 100
   }
-] 
+]

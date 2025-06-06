@@ -48,6 +48,16 @@ const BookingPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Promotion states
+  const [promotionCode, setPromotionCode] = useState("");
+  const [appliedPromotion, setAppliedPromotion] = useState(null);
+  const [promotionLoading, setPromotionLoading] = useState(false);
+  const [promotionError, setPromotionError] = useState("");
+
+  // Payment states
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+
   // Fill user data if authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -190,6 +200,78 @@ const BookingPage = () => {
     }));
   };
 
+  // Calculate total amount for pre-ordered items
+  const calculateSubtotal = () => {
+    return formData.preOrderedItems.reduce((total, item) => {
+      const menuItem = recommendedItems.find((mi) => mi._id === item.menuItem);
+      return total + (menuItem ? menuItem.price * item.quantity : 0);
+    }, 0);
+  };
+
+  // Calculate discount amount
+  const calculateDiscount = (subtotal) => {
+    if (!appliedPromotion) return 0;
+
+    let discount = 0;
+    if (appliedPromotion.type === "percentage") {
+      discount = subtotal * (appliedPromotion.value / 100);
+      if (
+        appliedPromotion.maxDiscountAmount &&
+        discount > appliedPromotion.maxDiscountAmount
+      ) {
+        discount = appliedPromotion.maxDiscountAmount;
+      }
+    } else if (appliedPromotion.type === "fixed_amount") {
+      discount = Math.min(appliedPromotion.value, subtotal);
+    }
+    return discount;
+  };
+
+  // Apply promotion code
+  const handleApplyPromotion = async () => {
+    if (!promotionCode.trim()) {
+      setPromotionError("Vui lòng nhập mã khuyến mãi");
+      return;
+    }
+
+    const subtotal = calculateSubtotal();
+    if (subtotal === 0) {
+      setPromotionError("Vui lòng chọn món ăn trước khi áp dụng khuyến mãi");
+      return;
+    }
+
+    setPromotionLoading(true);
+    setPromotionError("");
+
+    try {
+      const response = await api.post("/api/v1/promotions/apply-code", {
+        code: promotionCode,
+        orderTotal: subtotal,
+      });
+
+      setAppliedPromotion(response.data.data.promotion);
+      toast.success(
+        `Áp dụng mã khuyến mãi thành công! Giảm ${formatCurrency(
+          response.data.data.discountAmount
+        )}`
+      );
+    } catch (error) {
+      setPromotionError(
+        error.response?.data?.message || "Mã khuyến mãi không hợp lệ"
+      );
+    } finally {
+      setPromotionLoading(false);
+    }
+  };
+
+  // Remove applied promotion
+  const handleRemovePromotion = () => {
+    setAppliedPromotion(null);
+    setPromotionCode("");
+    setPromotionError("");
+    toast.info("Đã gỡ mã khuyến mãi");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -207,8 +289,30 @@ const BookingPage = () => {
     try {
       setSubmitting(true);
       setError("");
-
-      const response = await api.post("/api/v1/bookings", formData);
+      // Prepare booking data with promotion and payment info
+      const bookingData = {
+        ...formData,
+        appliedPromotion: appliedPromotion
+          ? {
+              id: appliedPromotion._id,
+              code: appliedPromotion.code,
+              name: appliedPromotion.name,
+              discountAmount: calculateDiscount(calculateSubtotal()),
+            }
+          : null,
+        paymentInfo:
+          formData.preOrderedItems.length > 0
+            ? {
+                subtotal: calculateSubtotal(),
+                discountAmount: calculateDiscount(calculateSubtotal()),
+                totalAmount:
+                  calculateSubtotal() - calculateDiscount(calculateSubtotal()),
+                paymentMethod: paymentMethod,
+                paymentStatus: "pending",
+              }
+            : null,
+      };
+      const response = await api.post("/api/bookings", formData);
 
       toast.success("Đặt bàn thành công! Chúng tôi sẽ liên hệ để xác nhận.");
 
@@ -227,6 +331,9 @@ const BookingPage = () => {
           notes: "",
           preOrderedItems: [],
         });
+        setAppliedPromotion(null);
+        setPromotionCode("");
+        setShowPayment(false);
       }
     } catch (error) {
       console.error("Error creating booking:", error);
@@ -736,6 +843,118 @@ const BookingPage = () => {
                 </p>
               </Card.Body>
             </Card>
+
+            {/* Order Summary & Payment Section */}
+            {formData.preOrderedItems.length > 0 && (
+              <Card className="shadow-sm mt-4">
+                <Card.Header className="bg-warning text-dark">
+                  <h4 className="mb-0">💰 Tổng Kết & Thanh Toán</h4>
+                </Card.Header>
+                <Card.Body>
+                  {/* Promotion Code Section */}
+                  <div className="mb-4">
+                    <h6>🎫 Mã Khuyến Mãi</h6>
+                    {appliedPromotion ? (
+                      <div className="alert alert-success d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{appliedPromotion.name}</strong>
+                          <br />
+                          <small>Mã: {appliedPromotion.code}</small>
+                        </div>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={handleRemovePromotion}
+                        >
+                          Gỡ
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="input-group mb-2">
+                          <Form.Control
+                            type="text"
+                            placeholder="Nhập mã khuyến mãi"
+                            value={promotionCode}
+                            onChange={(e) =>
+                              setPromotionCode(e.target.value.toUpperCase())
+                            }
+                            disabled={promotionLoading}
+                          />
+                          <Button
+                            variant="primary"
+                            onClick={handleApplyPromotion}
+                            disabled={promotionLoading || !promotionCode.trim()}
+                          >
+                            {promotionLoading ? (
+                              <Spinner animation="border" size="sm" />
+                            ) : (
+                              "Áp dụng"
+                            )}
+                          </Button>
+                        </div>
+                        {promotionError && (
+                          <div className="text-danger small">
+                            {promotionError}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="mb-4">
+                    <h6>📋 Tổng Kết Đơn Hàng</h6>
+                    <div className="border rounded p-3">
+                      <div className="d-flex justify-content-between mb-2">
+                        <span>Tạm tính:</span>
+                        <span>{formatCurrency(calculateSubtotal())}</span>
+                      </div>
+                      {appliedPromotion && (
+                        <div className="d-flex justify-content-between mb-2 text-success">
+                          <span>Giảm giá:</span>
+                          <span>
+                            -
+                            {formatCurrency(
+                              calculateDiscount(calculateSubtotal())
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      <hr />
+                      <div className="d-flex justify-content-between fw-bold">
+                        <span>Tổng cộng:</span>
+                        <span className="text-primary">
+                          {formatCurrency(
+                            calculateSubtotal() -
+                              calculateDiscount(calculateSubtotal())
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div className="mb-3">
+                    <h6>💳 Phương Thức Thanh Toán</h6>
+                    <Form.Select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                    >
+                      <option value="cash">Thanh toán tiền mặt khi đến</option>
+                      <option value="card">Thẻ tín dụng/ghi nợ</option>
+                      <option value="transfer">Chuyển khoản ngân hàng</option>
+                      <option value="ewallet">Ví điện tử</option>
+                    </Form.Select>
+                  </div>
+
+                  <div className="text-muted small">
+                    * Bạn có thể thanh toán trước hoặc thanh toán khi đến nhà
+                    hàng
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
           </Col>
         </Row>
       </Container>

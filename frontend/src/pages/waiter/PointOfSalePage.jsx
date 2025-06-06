@@ -39,6 +39,7 @@ import PaymentModal from "./components/PaymentModal";
 import DiscountModal from "./components/DiscountModal";
 import PrintInvoiceModal from "./components/PrintInvoiceModal";
 import orderService from "../../services/orderService";
+import { formatCurrency } from "../../utils/format";
 
 const PointOfSalePage = () => {
   const location = useLocation();
@@ -60,6 +61,11 @@ const PointOfSalePage = () => {
   const [menuItemSearchTerm, setMenuItemSearchTerm] = useState("");
   const [openOrders, setOpenOrders] = useState([]);
 
+  // Bookings state
+  const [bookings, setBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+
   // Current order state
   const [currentTable, setCurrentTable] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
@@ -68,6 +74,10 @@ const PointOfSalePage = () => {
   const [taxAmount, setTaxAmount] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+
+  // Promotion states
+  const [appliedPromotion, setAppliedPromotion] = useState(null);
+  const [promotionCode, setPromotionCode] = useState("");
 
   // Modal states
   const [showMenuItemModal, setShowMenuItemModal] = useState(false);
@@ -88,6 +98,7 @@ const PointOfSalePage = () => {
     fetchMenuCategories();
     fetchMenuItems();
     fetchOpenOrders();
+    fetchBookings();
   }, []);
 
   // Set selected table from URL if provided
@@ -253,6 +264,52 @@ const PointOfSalePage = () => {
     }
   };
 
+  // Fetch bookings
+  const fetchBookings = async () => {
+    setBookingsLoading(true);
+    try {
+      const response = await api.get("/api/v1/bookings");
+      setBookings(response.data.data.bookings);
+      setFilteredBookings(response.data.data.bookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      toast.error("Không thể tải danh sách đặt bàn");
+    } finally {
+      setBookingsLoading(false);
+    }
+  };
+
+  // Handle booking confirmation
+  const handleConfirmBooking = async (bookingId) => {
+    try {
+      await api.put(`/api/v1/bookings/${bookingId}/status`, {
+        status: "confirmed",
+      });
+      toast.success("Đã xác nhận đặt bàn");
+      fetchBookings();
+      fetchTables(); // Refresh tables as well
+    } catch (error) {
+      console.error("Error confirming booking:", error);
+      toast.error("Không thể xác nhận đặt bàn");
+    }
+  };
+
+  // Handle assign table to booking
+  const handleAssignTable = async (bookingId, tableId) => {
+    try {
+      await api.put(`/api/v1/bookings/${bookingId}`, {
+        tableAssigned: tableId,
+        status: "confirmed",
+      });
+      toast.success("Đã gán bàn cho đặt bàn");
+      fetchBookings();
+      fetchTables();
+    } catch (error) {
+      console.error("Error assigning table:", error);
+      toast.error("Không thể gán bàn");
+    }
+  };
+
   // Filter menu items based on category and search term
   const filterMenuItems = () => {
     let filtered = [...menuItems];
@@ -300,6 +357,48 @@ const PointOfSalePage = () => {
     }
 
     setCurrentTable(table);
+
+    // Check for upcoming reservations for this table
+    try {
+      const reservationsResponse = await api.get(
+        `/api/v1/tables/${table._id}/upcoming-reservations`
+      );
+      const upcomingReservations =
+        reservationsResponse.data.data.upcomingBookings;
+
+      // If there are upcoming reservations within 24 hours, show an alert (changed from 2 hours for testing)
+      if (upcomingReservations && upcomingReservations.length > 0) {
+        const nextReservation = upcomingReservations[0]; // Get the closest reservation
+
+        // Format date and time for display
+        const reservationDate = new Date(nextReservation.date);
+        const formattedDate = reservationDate.toLocaleDateString("vi-VN");
+
+        // Show alert with reservation details
+        const alertMessage = `
+          CHÚ Ý: Bàn này đã được đặt trước!
+          
+          Thời gian: ${formattedDate} lúc ${nextReservation.time}
+          Khách hàng: ${nextReservation.customerName}
+          Số điện thoại: ${nextReservation.customerPhone}
+          Số khách: ${nextReservation.numberOfGuests} người
+          Còn: ${nextReservation.minutesUntil} phút nữa (${nextReservation.hoursUntil} giờ)
+        `;
+
+        alert(alertMessage);
+
+        // Also show a toast notification
+        toast.warning(
+          `Bàn này đã được đặt trước! Còn ${nextReservation.minutesUntil} phút nữa (${nextReservation.hoursUntil} giờ)`,
+          {
+            autoClose: 10000, // Keep the toast visible for longer
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error checking upcoming reservations:", error);
+      // Don't show error to user, just continue with table selection
+    }
 
     // If table is occupied, fetch the current order
     if (table.status === "occupied" && table.currentOrderId) {
@@ -357,6 +456,8 @@ const PointOfSalePage = () => {
     setCurrentOrder(null);
     setOrderItems([]);
     setDiscountAmount(0);
+    setAppliedPromotion(null);
+    setPromotionCode("");
   };
 
   // Handle filter tables input
@@ -466,14 +567,25 @@ const PointOfSalePage = () => {
 
   // Handle discount application
   const handleApplyDiscount = (discountData) => {
-    if (discountData.discountPercentage !== null) {
+    if (discountData.promotionCode && discountData.appliedPromotion) {
+      // Handle promotion code discount
+      setDiscountAmount(discountData.discountAmount);
+      setAppliedPromotion(discountData.appliedPromotion);
+      setPromotionCode(discountData.promotionCode);
+    } else if (discountData.discountPercentage !== null) {
+      // Handle percentage discount
       const amount = (
         subTotal *
         (discountData.discountPercentage / 100)
       ).toFixed(0);
       setDiscountAmount(parseFloat(amount));
+      setAppliedPromotion(null);
+      setPromotionCode("");
     } else if (discountData.discountAmount !== null) {
+      // Handle fixed amount discount
       setDiscountAmount(discountData.discountAmount);
+      setAppliedPromotion(null);
+      setPromotionCode("");
     }
   };
 
@@ -528,7 +640,11 @@ const PointOfSalePage = () => {
               className="d-flex align-items-center flex-grow-1"
             >
               <FaTags className="me-2" />
-              {discountAmount > 0 ? "Sửa giảm giá" : "Giảm giá"}
+              {discountAmount > 0
+                ? appliedPromotion
+                  ? `Sửa KM (${promotionCode})`
+                  : "Sửa giảm giá"
+                : "Giảm giá"}
             </Button>
 
             <Button
@@ -667,6 +783,7 @@ const PointOfSalePage = () => {
       // Refresh tables to get updated status
       fetchTables();
       fetchOpenOrders();
+      fetchBookings();
     } catch (error) {
       console.error("Error saving order:", error);
       console.error("Chi tiết lỗi:", error.response?.data || error.message);
@@ -708,6 +825,7 @@ const PointOfSalePage = () => {
       // Refresh tables
       fetchTables();
       fetchOpenOrders();
+      fetchBookings();
 
       // Set table to null
       setCurrentTable(null);
@@ -833,6 +951,22 @@ const PointOfSalePage = () => {
                   </Nav.Item>
                   <Nav.Item>
                     <Nav.Link
+                      eventKey="bookings"
+                      className="d-flex align-items-center"
+                    >
+                      <FaUsers className="me-2" /> Đặt Bàn
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                      eventKey="bookings"
+                      className="d-flex align-items-center"
+                    >
+                      <FaUsers className="me-2" /> Đặt Bàn
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
                       eventKey="orders"
                       className="d-flex align-items-center"
                     >
@@ -876,6 +1010,187 @@ const PointOfSalePage = () => {
                         Tiếp tục chọn món cho bàn {currentTable.name}
                       </Button>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "bookings" && (
+                <div className="p-2">
+                  <h6 className="mb-3">Danh Sách Đặt Bàn</h6>
+                  {bookingsLoading ? (
+                    <div className="text-center py-3">
+                      <Spinner animation="border" size="sm" />
+                      <p className="mt-2">Đang tải...</p>
+                    </div>
+                  ) : filteredBookings.length === 0 ? (
+                    <p className="text-center text-muted">
+                      Không có đặt bàn nào
+                    </p>
+                  ) : (
+                    <ListGroup>
+                      {filteredBookings.map((booking) => (
+                        <ListGroup.Item key={booking._id} className="mb-2">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <strong>{booking.customerName}</strong>
+                              <div className="text-muted small">
+                                {booking.customerPhone}
+                              </div>
+                            </div>
+                            <Badge
+                              bg={
+                                booking.status === "pending"
+                                  ? "warning"
+                                  : booking.status === "confirmed"
+                                  ? "success"
+                                  : booking.status === "cancelled"
+                                  ? "danger"
+                                  : "secondary"
+                              }
+                            >
+                              {booking.status === "pending"
+                                ? "Chờ xác nhận"
+                                : booking.status === "confirmed"
+                                ? "Đã xác nhận"
+                                : booking.status === "cancelled"
+                                ? "Đã hủy"
+                                : booking.status === "completed"
+                                ? "Hoàn thành"
+                                : booking.status}
+                            </Badge>
+                          </div>
+
+                          <div className="row small mb-2">
+                            <div className="col-6">
+                              <FaUsers className="me-1" />
+                              {booking.numberOfGuests} khách
+                            </div>
+                            <div className="col-6">
+                              <FaTable className="me-1" />
+                              {booking.tableAssigned?.name || "Chưa gán bàn"}
+                            </div>
+                          </div>
+
+                          <div className="small mb-2">
+                            📅{" "}
+                            {new Date(booking.date).toLocaleDateString("vi-VN")}{" "}
+                            lúc {booking.time}
+                          </div>
+
+                          {/* Pre-ordered items */}
+                          {booking.preOrderedItems &&
+                            booking.preOrderedItems.length > 0 && (
+                              <div className="mb-2">
+                                <div className="small fw-bold">
+                                  Món đã đặt trước:
+                                </div>
+                                {booking.preOrderedItems.map((item, index) => (
+                                  <div key={index} className="small text-muted">
+                                    • {item.menuItem?.name || "Món ăn"} x
+                                    {item.quantity}
+                                    {item.notes && (
+                                      <span className="fst-italic">
+                                        {" "}
+                                        ({item.notes})
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                          {/* Promotion info */}
+                          {booking.appliedPromotion && (
+                            <div className="mb-2">
+                              <div className="small fw-bold text-success">
+                                🎫 Khuyến mãi:
+                              </div>
+                              <div className="small text-success">
+                                {booking.appliedPromotion.name} (
+                                {booking.appliedPromotion.code})
+                                <br />
+                                Giảm:{" "}
+                                {formatCurrency(
+                                  booking.appliedPromotion.discountAmount
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Payment info */}
+                          {booking.paymentInfo && (
+                            <div className="mb-2">
+                              <div className="small fw-bold">
+                                💰 Thanh toán:
+                              </div>
+                              <div className="small">
+                                Tổng:{" "}
+                                {formatCurrency(
+                                  booking.paymentInfo.totalAmount
+                                )}
+                                (
+                                {booking.paymentInfo.paymentMethod === "cash"
+                                  ? "Tiền mặt"
+                                  : booking.paymentInfo.paymentMethod === "card"
+                                  ? "Thẻ"
+                                  : booking.paymentInfo.paymentMethod ===
+                                    "transfer"
+                                  ? "Chuyển khoản"
+                                  : booking.paymentInfo.paymentMethod ===
+                                    "ewallet"
+                                  ? "Ví điện tử"
+                                  : booking.paymentInfo.paymentMethod}
+                                )
+                              </div>
+                            </div>
+                          )}
+
+                          {booking.notes && (
+                            <div className="small text-muted mb-2">
+                              📝 {booking.notes}
+                            </div>
+                          )}
+
+                          {/* Action buttons */}
+                          {booking.status === "pending" && (
+                            <div className="d-flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                variant="success"
+                                onClick={() =>
+                                  handleConfirmBooking(booking._id)
+                                }
+                              >
+                                Xác nhận
+                              </Button>
+                              {!booking.tableAssigned && (
+                                <Form.Select
+                                  size="sm"
+                                  style={{ width: "auto" }}
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handleAssignTable(
+                                        booking._id,
+                                        e.target.value
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <option value="">Gán bàn...</option>
+                                  {tables
+                                    .filter((t) => t.status === "available")
+                                    .map((table) => (
+                                      <option key={table._id} value={table._id}>
+                                        {table.name} ({table.capacity} chỗ)
+                                      </option>
+                                    ))}
+                                </Form.Select>
+                              )}
+                            </div>
+                          )}
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
                   )}
                 </div>
               )}
@@ -1044,6 +1359,8 @@ const PointOfSalePage = () => {
                 taxAmount={taxAmount}
                 discountAmount={discountAmount}
                 totalAmount={totalAmount}
+                appliedPromotion={appliedPromotion}
+                promotionCode={promotionCode}
                 onUpdateQuantity={handleUpdateQuantity}
                 onRemoveItem={handleRemoveItem}
                 onUpdateNotes={handleUpdateNotes}
