@@ -11,25 +11,25 @@ const bookingService = {
    */
   getAllBookings: async (filters = {}) => {
     let queryString = '';
-    
+
     if (filters.status) {
       queryString += `status=${filters.status}&`;
     }
-    
+
     if (filters.date) {
       queryString += `date=${filters.date}&`;
     }
-    
+
     if (filters.customerId) {
       queryString += `customerId=${filters.customerId}&`;
     }
-    
+
     // Hỗ trợ cả hai endpoint API
     const url = `/api/bookings${queryString ? '?' + queryString : ''}`;
     console.log('Requesting bookings from URL:', url);
     return api.get(url);
   },
-  
+
   /**
    * Lấy chi tiết một đặt bàn
    * @param {String} bookingId - ID của đặt bàn
@@ -42,12 +42,12 @@ const bookingService = {
     } catch (error) {
       if (error.response && error.response.status === 404) {
         // Nếu không tìm thấy, thử endpoint thứ hai
-        return api.get(`/api/v1/bookings/${bookingId}`);
+        return api.get(`/api/bookings/${bookingId}`);
       }
       throw error;
     }
   },
-  
+
   /**
    * Tạo đặt bàn mới
    * @param {Object} bookingData - Dữ liệu đặt bàn mới
@@ -56,7 +56,7 @@ const bookingService = {
   createBooking: async (bookingData) => {
     return api.post('/api/bookings', bookingData);
   },
-  
+
   /**
    * Cập nhật trạng thái đặt bàn
    * @param {String} bookingId - ID của đặt bàn
@@ -68,12 +68,12 @@ const bookingService = {
       return await api.put(`/api/bookings/${bookingId}/status`, statusData);
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.put(`/api/v1/bookings/${bookingId}/status`, statusData);
+        return api.put(`/api/bookings/${bookingId}/status`, statusData);
       }
       throw error;
     }
   },
-  
+
   /**
    * Cập nhật thông tin đặt bàn
    * @param {String} bookingId - ID của đặt bàn
@@ -85,12 +85,12 @@ const bookingService = {
       return await api.put(`/api/bookings/${bookingId}`, bookingData);
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.put(`/api/v1/bookings/${bookingId}`, bookingData);
+        return api.put(`/api/bookings/${bookingId}`, bookingData);
       }
       throw error;
     }
   },
-  
+
   /**
    * Hủy đặt bàn bởi khách hàng
    * @param {String} bookingId - ID của đặt bàn
@@ -101,12 +101,12 @@ const bookingService = {
       return await api.put(`/api/bookings/${bookingId}/cancel`, { reason });
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.put(`/api/v1/bookings/${bookingId}/cancel`, { reason });
+        return api.put(`/api/bookings/${bookingId}/cancel`, { reason });
       }
       throw error;
     }
   },
-  
+
   /**
    * Tạo đơn hàng từ đặt bàn
    * @param {String} bookingId - ID của đặt bàn
@@ -117,12 +117,12 @@ const bookingService = {
       return await api.post(`/api/bookings/${bookingId}/create-order`);
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.post(`/api/v1/bookings/${bookingId}/create-order`);
+        return api.post(`/api/bookings/${bookingId}/create-order`);
       }
       throw error;
     }
   },
-  
+
   /**
    * Lấy đơn hàng liên quan đến đặt bàn
    * @param {String} bookingId - ID của đặt bàn
@@ -133,12 +133,12 @@ const bookingService = {
       return await api.get(`/api/bookings/${bookingId}/order`);
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.get(`/api/v1/bookings/${bookingId}/order`);
+        return api.get(`/api/bookings/${bookingId}/order`);
       }
       throw error;
     }
   },
-  
+
   /**
    * Lấy danh sách đặt bàn của khách hàng hiện tại
    * @returns {Promise} Promise với dữ liệu đặt bàn
@@ -148,12 +148,12 @@ const bookingService = {
       return await api.get('/api/bookings/my-bookings');
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.get('/api/v1/bookings/my-bookings');
+        return api.get('/api/bookings/my-bookings');
       }
       throw error;
     }
   },
-  
+
   /**
    * Gán bàn cho đặt bàn
    * @param {String} bookingId - ID của đặt bàn
@@ -165,12 +165,12 @@ const bookingService = {
       return await api.put(`/api/bookings/${bookingId}/assign-table`, { tableId });
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        return api.put(`/api/v1/bookings/${bookingId}/assign-table`, { tableId });
+        return api.put(`/api/bookings/${bookingId}/assign-table`, { tableId });
       }
       throw error;
     }
   },
-  
+
   /**
    * Lấy đặt bàn của ngày hôm nay
    * @returns {Promise} Promise với dữ liệu đặt bàn của ngày hôm nay
@@ -180,7 +180,7 @@ const bookingService = {
     today.setHours(0, 0, 0, 0);
     return bookingService.getAllBookings({ date: today.toISOString() });
   },
-  
+
   /**
    * Lấy đặt bàn sắp tới
    * @param {Number} days - Số ngày từ ngày hiện tại
@@ -189,10 +189,10 @@ const bookingService = {
   getUpcomingBookings: async (days = 7) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const endDate = new Date(today);
     endDate.setDate(today.getDate() + days);
-    
+
     return bookingService.getAllBookings({
       startDate: today.toISOString(),
       endDate: endDate.toISOString()

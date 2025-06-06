@@ -42,7 +42,7 @@ const MyBookingsPage = () => {
   const fetchMyBookings = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/v1/bookings/my-bookings");
+      const response = await api.get("/api/bookings/my-bookings");
       setBookings(response.data.data.bookings);
       setError("");
     } catch (err) {
@@ -58,7 +58,7 @@ const MyBookingsPage = () => {
     try {
       setCancellingBooking(true);
       await api.put(
-        `/api/v1/bookings/${selectedBooking._id}/cancel-by-customer`
+        `/api/bookings/${selectedBooking._id}/cancel-by-customer`
       );
 
       // Update local state
@@ -76,7 +76,7 @@ const MyBookingsPage = () => {
       console.error("Error cancelling booking:", err);
       toast.error(
         err.response?.data?.message ||
-          "Không thể hủy đặt bàn. Vui lòng thử lại sau."
+        "Không thể hủy đặt bàn. Vui lòng thử lại sau."
       );
     } finally {
       setCancellingBooking(false);
@@ -225,7 +225,7 @@ const MyBookingsPage = () => {
                           {booking.numberOfGuests} người
                         </span>
                       </div>
-                      
+
                       {booking.tableAssigned && (
                         <div className="d-flex align-items-center mt-2">
                           <FaCheckCircle className="text-success me-2" />
@@ -320,14 +320,14 @@ const MyBookingsPage = () => {
                               {booking.paymentInfo.paymentMethod === "cash"
                                 ? "Tiền mặt"
                                 : booking.paymentInfo.paymentMethod === "card"
-                                ? "Thẻ"
-                                : booking.paymentInfo.paymentMethod ===
-                                  "transfer"
-                                ? "Chuyển khoản"
-                                : booking.paymentInfo.paymentMethod ===
-                                  "ewallet"
-                                ? "Ví điện tử"
-                                : booking.paymentInfo.paymentMethod}
+                                  ? "Thẻ"
+                                  : booking.paymentInfo.paymentMethod ===
+                                    "transfer"
+                                    ? "Chuyển khoản"
+                                    : booking.paymentInfo.paymentMethod ===
+                                      "ewallet"
+                                      ? "Ví điện tử"
+                                      : booking.paymentInfo.paymentMethod}
                             </small>
                           </div>
                         </div>
@@ -352,8 +352,8 @@ const MyBookingsPage = () => {
                         ].includes(booking.status)
                           ? "Đặt bàn đã bị hủy"
                           : ["completed", "no_show"].includes(booking.status)
-                          ? "Đặt bàn đã hoàn thành"
-                          : "Không thể hủy (dưới 2 giờ trước giờ đặt)"}
+                            ? "Đặt bàn đã hoàn thành"
+                            : "Không thể hủy (dưới 2 giờ trước giờ đặt)"}
                       </div>
                     )}
                   </Card.Footer>

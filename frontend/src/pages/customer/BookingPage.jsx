@@ -294,25 +294,25 @@ const BookingPage = () => {
         ...formData,
         appliedPromotion: appliedPromotion
           ? {
-              id: appliedPromotion._id,
-              code: appliedPromotion.code,
-              name: appliedPromotion.name,
-              discountAmount: calculateDiscount(calculateSubtotal()),
-            }
+            id: appliedPromotion._id,
+            code: appliedPromotion.code,
+            name: appliedPromotion.name,
+            discountAmount: calculateDiscount(calculateSubtotal()),
+          }
           : null,
         paymentInfo:
           formData.preOrderedItems.length > 0
             ? {
-                subtotal: calculateSubtotal(),
-                discountAmount: calculateDiscount(calculateSubtotal()),
-                totalAmount:
-                  calculateSubtotal() - calculateDiscount(calculateSubtotal()),
-                paymentMethod: paymentMethod,
-                paymentStatus: "pending",
-              }
+              subtotal: calculateSubtotal(),
+              discountAmount: calculateDiscount(calculateSubtotal()),
+              totalAmount:
+                calculateSubtotal() - calculateDiscount(calculateSubtotal()),
+              paymentMethod: paymentMethod,
+              paymentStatus: "pending",
+            }
             : null,
       };
-      const response = await api.post("/api/bookings", formData);
+      const response = await api.post("/api/bookings", bookingData);
 
       toast.success("Đặt bàn thành công! Chúng tôi sẽ liên hệ để xác nhận.");
 
@@ -339,7 +339,7 @@ const BookingPage = () => {
       console.error("Error creating booking:", error);
       setError(
         error.response?.data?.message ||
-          "Có lỗi xảy ra khi đặt bàn. Vui lòng thử lại sau."
+        "Có lỗi xảy ra khi đặt bàn. Vui lòng thử lại sau."
       );
     } finally {
       setSubmitting(false);
@@ -574,9 +574,8 @@ const BookingPage = () => {
                       return (
                         <Card
                           key={item._id}
-                          className={`mb-3 ${
-                            isSelected ? "border-primary" : ""
-                          }`}
+                          className={`mb-3 ${isSelected ? "border-primary" : ""
+                            }`}
                         >
                           <Row className="g-0">
                             <Col xs={4}>
@@ -714,9 +713,8 @@ const BookingPage = () => {
                         return (
                           <Card
                             key={item._id}
-                            className={`mb-3 ${
-                              isSelected ? "border-primary" : ""
-                            }`}
+                            className={`mb-3 ${isSelected ? "border-primary" : ""
+                              }`}
                           >
                             <Row className="g-0">
                               <Col xs={4}>
@@ -927,7 +925,7 @@ const BookingPage = () => {
                         <span className="text-primary">
                           {formatCurrency(
                             calculateSubtotal() -
-                              calculateDiscount(calculateSubtotal())
+                            calculateDiscount(calculateSubtotal())
                           )}
                         </span>
                       </div>

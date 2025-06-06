@@ -235,8 +235,7 @@ const PointOfSalePage = () => {
       if (error.response) {
         console.error("Lỗi từ server:", error.response.data);
         toast.error(
-          `Không thể tải thực đơn: ${
-            error.response.data.message || "Lỗi máy chủ"
+          `Không thể tải thực đơn: ${error.response.data.message || "Lỗi máy chủ"
           }`
         );
       } else if (error.request) {
@@ -269,7 +268,7 @@ const PointOfSalePage = () => {
   const fetchBookings = async () => {
     setBookingsLoading(true);
     try {
-      const response = await api.get("/api/v1/bookings");
+      const response = await api.get("/api/bookings");
       setBookings(response.data.data.bookings);
       setFilteredBookings(response.data.data.bookings);
     } catch (error) {
@@ -283,7 +282,7 @@ const PointOfSalePage = () => {
   // Handle booking confirmation
   const handleConfirmBooking = async (bookingId) => {
     try {
-      await api.put(`/api/v1/bookings/${bookingId}/status`, {
+      await api.put(`/api/bookings/${bookingId}/status`, {
         status: "confirmed",
       });
       toast.success("Đã xác nhận đặt bàn");
@@ -298,7 +297,7 @@ const PointOfSalePage = () => {
   // Handle assign table to booking
   const handleAssignTable = async (bookingId, tableId) => {
     try {
-      await api.put(`/api/v1/bookings/${bookingId}`, {
+      await api.put(`/api/bookings/${bookingId}`, {
         tableAssigned: tableId,
         status: "confirmed",
       });
@@ -845,8 +844,7 @@ const PointOfSalePage = () => {
       });
 
       toast.success(
-        `Thanh toán ${
-          paymentData.paymentMethod === "cash" ? "tiền mặt" : "chuyển khoản"
+        `Thanh toán ${paymentData.paymentMethod === "cash" ? "tiền mặt" : "chuyển khoản"
         } thành công`
       );
 
@@ -1073,21 +1071,21 @@ const PointOfSalePage = () => {
                                 booking.status === "pending"
                                   ? "warning"
                                   : booking.status === "confirmed"
-                                  ? "success"
-                                  : booking.status === "cancelled"
-                                  ? "danger"
-                                  : "secondary"
+                                    ? "success"
+                                    : booking.status === "cancelled"
+                                      ? "danger"
+                                      : "secondary"
                               }
                             >
                               {booking.status === "pending"
                                 ? "Chờ xác nhận"
                                 : booking.status === "confirmed"
-                                ? "Đã xác nhận"
-                                : booking.status === "cancelled"
-                                ? "Đã hủy"
-                                : booking.status === "completed"
-                                ? "Hoàn thành"
-                                : booking.status}
+                                  ? "Đã xác nhận"
+                                  : booking.status === "cancelled"
+                                    ? "Đã hủy"
+                                    : booking.status === "completed"
+                                      ? "Hoàn thành"
+                                      : booking.status}
                             </Badge>
                           </div>
 
@@ -1163,14 +1161,14 @@ const PointOfSalePage = () => {
                                 {booking.paymentInfo.paymentMethod === "cash"
                                   ? "Tiền mặt"
                                   : booking.paymentInfo.paymentMethod === "card"
-                                  ? "Thẻ"
-                                  : booking.paymentInfo.paymentMethod ===
-                                    "transfer"
-                                  ? "Chuyển khoản"
-                                  : booking.paymentInfo.paymentMethod ===
-                                    "ewallet"
-                                  ? "Ví điện tử"
-                                  : booking.paymentInfo.paymentMethod}
+                                    ? "Thẻ"
+                                    : booking.paymentInfo.paymentMethod ===
+                                      "transfer"
+                                      ? "Chuyển khoản"
+                                      : booking.paymentInfo.paymentMethod ===
+                                        "ewallet"
+                                        ? "Ví điện tử"
+                                        : booking.paymentInfo.paymentMethod}
                                 )
                               </div>
                             </div>
@@ -1274,28 +1272,28 @@ const PointOfSalePage = () => {
                                     ? "warning"
                                     : order.orderStatus ===
                                       "confirmed_by_customer"
-                                    ? "info"
-                                    : order.orderStatus ===
+                                      ? "info"
+                                      : order.orderStatus ===
                                         "partially_served" ||
-                                      order.orderStatus === "fully_served"
-                                    ? "secondary"
-                                    : order.orderStatus === "payment_pending"
-                                    ? "success"
-                                    : "danger"
+                                        order.orderStatus === "fully_served"
+                                        ? "secondary"
+                                        : order.orderStatus === "payment_pending"
+                                          ? "success"
+                                          : "danger"
                                 }
                               >
                                 {order.orderStatus === "pending_confirmation"
                                   ? "Chờ xác nhận"
                                   : order.orderStatus ===
                                     "confirmed_by_customer"
-                                  ? "Đã xác nhận"
-                                  : order.orderStatus === "partially_served"
-                                  ? "Đã phục vụ một phần"
-                                  : order.orderStatus === "fully_served"
-                                  ? "Đã phục vụ đầy đủ"
-                                  : order.orderStatus === "payment_pending"
-                                  ? "Chờ thanh toán"
-                                  : "Đã hủy"}
+                                    ? "Đã xác nhận"
+                                    : order.orderStatus === "partially_served"
+                                      ? "Đã phục vụ một phần"
+                                      : order.orderStatus === "fully_served"
+                                        ? "Đã phục vụ đầy đủ"
+                                        : order.orderStatus === "payment_pending"
+                                          ? "Chờ thanh toán"
+                                          : "Đã hủy"}
                               </Badge>
                               <div className="mt-1">
                                 {new Intl.NumberFormat("vi-VN", {
