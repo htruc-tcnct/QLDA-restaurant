@@ -1,0 +1,95 @@
+[
+  {
+    "fullName": "Quản Lý Nhà Hàng",
+    "email": "manager@example.com",
+    "username": "manager01",
+    "password": "123456",
+    "role": "manager",
+    "phoneNumber": "0912345678"
+  },
+  {
+    "fullName": "Đầu Bếp Trưởng",
+    "email": "chef@example.com",
+    "username": "chef01",
+    "password": "123456",
+    "role": "chef",
+    "phoneNumber": "0912345679"
+  },
+  {
+    "fullName": "Đầu Bếp Phụ",
+    "email": "chef_assistant@example.com",
+    "username": "chef02",
+    "password": "123456",
+    "role": "chef",
+    "phoneNumber": "0912345680"
+  },
+  {
+    "fullName": "Phục Vụ A",
+    "email": "waiter_a@example.com",
+    "username": "waiter_a",
+    "password": "123456",
+    "role": "staff",
+    "phoneNumber": "0912345681"
+  },
+  {
+    "fullName": "Phục Vụ B",
+    "email": "waiter_b@example.com",
+    "username": "waiter_b",
+    "password": "123456",
+    "role": "staff",
+    "phoneNumber": "0912345682"
+  },
+  {
+    "fullName": "Phục Vụ C",
+    "email": "waiter_c@example.com",
+    "username": "waiter_c",
+    "password": "123456",
+    "role": "staff",
+    "phoneNumber": "0912345683"
+  },
+  {
+    "fullName": "Nguyễn Văn A",
+    "email": "customer1@example.com",
+    "username": "customer1",
+    "password": "123456",
+    "role": "customer",
+    "phoneNumber": "0901234567",
+    "loyaltyPoints": 150
+  },
+  {
+    "fullName": "Trần Thị B",
+    "email": "customer2@example.com",
+    "username": "customer2",
+    "password": "123456",
+    "role": "customer",
+    "phoneNumber": "0901234568",
+    "loyaltyPoints": 320
+  },
+  {
+    "fullName": "Lê Văn C",
+    "email": "customer3@example.com",
+    "username": "customer3",
+    "password": "123456",
+    "role": "customer",
+    "phoneNumber": "0901234569",
+    "loyaltyPoints": 50
+  },
+  {
+    "fullName": "Phạm Thị D",
+    "email": "customer4@example.com",
+    "username": "customer4",
+    "password": "123456",
+    "role": "customer",
+    "phoneNumber": "0901234570",
+    "loyaltyPoints": 200
+  },
+  {
+    "fullName": "Hoàng Văn E",
+    "email": "customer5@example.com",
+    "username": "customer5",
+    "password": "123456",
+    "role": "customer",
+    "phoneNumber": "0901234571",
+    "loyaltyPoints": 100
+  }
+]
