@@ -15,6 +15,21 @@ const getNotifications = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get unread notifications count
+// @route   GET /api/v1/notifications/unread-count
+// @access  Private
+const getUnreadCount = asyncHandler(async (req, res) => {
+  const count = await Notification.countDocuments({ 
+    recipient: req.user._id,
+    isRead: false
+  });
+  
+  res.status(200).json({
+    success: true,
+    count
+  });
+});
+
 // @desc    Mark a notification as read
 // @route   PUT /api/v1/notifications/:id/read
 // @access  Private
@@ -73,7 +88,7 @@ const deleteNotification = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to delete this notification');
   }
   
-  await notification.remove();
+  await Notification.deleteOne({ _id: req.params.id });
   
   res.status(200).json({
     success: true,
@@ -83,6 +98,7 @@ const deleteNotification = asyncHandler(async (req, res) => {
 
 module.exports = {
   getNotifications,
+  getUnreadCount,
   markAsRead,
   markAllAsRead,
   deleteNotification

@@ -22,6 +22,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const promotionRoutes = require('./routes/promotionRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -88,6 +89,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/promotions', promotionRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // Test route to get all menu items
 app.get('/api/menu', async (req, res) => {

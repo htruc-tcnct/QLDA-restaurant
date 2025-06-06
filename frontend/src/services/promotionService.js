@@ -1,47 +1,72 @@
 import api from './api';
 
-// Get all promotions with pagination and filters
-export const getPromotions = async (page = 1, limit = 10, filters = {}) => {
-  const params = { page, limit, ...filters };
-  const response = await api.get('/api/v1/promotions', { params });
-  return response.data;
+/**
+ * Promotion Service - Quản lý các API liên quan đến mã khuyến mãi
+ */
+const promotionService = {
+  /**
+   * Lấy danh sách mã khuyến mãi
+   * @returns {Promise} Promise với dữ liệu mã khuyến mãi
+   */
+  getAllPromotions: async () => {
+    return api.get('/api/v1/promotions');
+  },
+  
+  /**
+   * Lấy chi tiết một mã khuyến mãi
+   * @param {String} promotionId - ID của mã khuyến mãi
+   * @returns {Promise} Promise với dữ liệu chi tiết mã khuyến mãi
+   */
+  getPromotionById: async (promotionId) => {
+    return api.get(`/api/v1/promotions/${promotionId}`);
+  },
+  
+  /**
+   * Tạo mã khuyến mãi mới
+   * @param {Object} promotionData - Dữ liệu mã khuyến mãi mới
+   * @returns {Promise} Promise với dữ liệu mã khuyến mãi đã tạo
+   */
+  createPromotion: async (promotionData) => {
+    return api.post('/api/v1/promotions', promotionData);
+  },
+  
+  /**
+   * Cập nhật mã khuyến mãi
+   * @param {String} promotionId - ID của mã khuyến mãi
+   * @param {Object} promotionData - Dữ liệu cập nhật
+   * @returns {Promise} Promise với dữ liệu mã khuyến mãi đã cập nhật
+   */
+  updatePromotion: async (promotionId, promotionData) => {
+    return api.patch(`/api/v1/promotions/${promotionId}`, promotionData);
+  },
+  
+  /**
+   * Xóa mã khuyến mãi
+   * @param {String} promotionId - ID của mã khuyến mãi
+   * @returns {Promise} Promise kết quả xóa
+   */
+  deletePromotion: async (promotionId) => {
+    return api.delete(`/api/v1/promotions/${promotionId}`);
+  },
+  
+  /**
+   * Kiểm tra mã khuyến mãi có hợp lệ không
+   * @param {String} code - Mã khuyến mãi
+   * @param {Number} orderTotal - Tổng giá trị đơn hàng
+   * @returns {Promise} Promise với kết quả kiểm tra
+   */
+  validatePromotion: async (code, orderTotal) => {
+    return api.post('/api/v1/promotions/validate', { code, orderTotal });
+  },
+  
+  /**
+   * Áp dụng mã khuyến mãi (tăng số lần sử dụng)
+   * @param {String} code - Mã khuyến mãi
+   * @returns {Promise} Promise với kết quả áp dụng
+   */
+  applyPromotion: async (code) => {
+    return api.post('/api/v1/promotions/apply', { code });
+  }
 };
 
-// Get a single promotion by ID
-export const getPromotion = async (id) => {
-  const response = await api.get(`/api/v1/promotions/${id}`);
-  return response.data;
-};
-
-// Create a new promotion
-export const createPromotion = async (promotionData) => {
-  const response = await api.post('/api/v1/promotions', promotionData);
-  return response.data;
-};
-
-// Update an existing promotion
-export const updatePromotion = async (id, promotionData) => {
-  const response = await api.put(`/api/v1/promotions/${id}`, promotionData);
-  return response.data;
-};
-
-// Delete a promotion
-export const deletePromotion = async (id) => {
-  const response = await api.delete(`/api/v1/promotions/${id}`);
-  return response.data;
-};
-
-// Toggle promotion active status
-export const togglePromotionStatus = async (id) => {
-  const response = await api.patch(`/api/v1/promotions/${id}/toggle-status`);
-  return response.data;
-};
-
-// Apply a promotion code to an order
-export const applyPromoCode = async (code, orderTotal) => {
-  const response = await api.post('/api/v1/promotions/apply-code', {
-    code,
-    orderTotal
-  });
-  return response.data;
-}; 
+export default promotionService; 

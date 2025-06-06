@@ -28,6 +28,7 @@ import PaymentModal from './components/PaymentModal';
 import DiscountModal from './components/DiscountModal';
 import PrintInvoiceModal from './components/PrintInvoiceModal';
 import orderService from '../../services/orderService';
+import menuService from '../../services/menuService';
 
 const PointOfSalePage = () => {
   const location = useLocation();
@@ -132,7 +133,7 @@ const PointOfSalePage = () => {
   // Fetch menu categories
   const fetchMenuCategories = async () => {
     try {
-      const response = await api.get('/api/menu-items/categories/list');
+      const response = await menuService.getCategories();
       console.log('Categories response:', response.data); // Debug log
       
       // Đảm bảo dữ liệu categories hợp lệ
@@ -170,7 +171,7 @@ const PointOfSalePage = () => {
   const fetchMenuItems = async () => {
     setLoadingMenu(true);
     try {
-      const response = await api.get('/api/menu-items?available=true');
+      const response = await menuService.getMenuItems({ available: true });
       console.log('Menu items response:', response.data); // Debug log
       
       // Kiểm tra cấu trúc dữ liệu thực tế từ API
@@ -467,6 +468,19 @@ const PointOfSalePage = () => {
     } else if (discountData.discountAmount !== null) {
       setDiscountAmount(discountData.discountAmount);
     }
+    
+    // Lưu thông tin mã giảm giá nếu có
+    if (currentOrder && discountData.promoCode) {
+      // Lưu thông tin mã giảm giá vào order để sử dụng khi thanh toán
+      setCurrentOrder({
+        ...currentOrder,
+        promoCode: discountData.promoCode,
+        promoId: discountData.promoId
+      });
+      
+      // Hiển thị thông báo
+      toast.success(`Đã áp dụng mã giảm giá: ${discountData.promoCode}`);
+    }
   };
   
   // Render order action buttons
@@ -602,7 +616,9 @@ const PointOfSalePage = () => {
         // Apply discount if any
         if (discountAmount > 0) {
           await api.put(`/api/v1/orders/${currentOrder._id}/apply-discount`, {
-            discountAmount
+            discountAmount,
+            promoCode: currentOrder.promoCode,
+            promoId: currentOrder.promoId
           });
         }
 
@@ -637,7 +653,9 @@ const PointOfSalePage = () => {
         // Apply discount if any
         if (discountAmount > 0) {
           await api.put(`/api/v1/orders/${orderId}/apply-discount`, {
-            discountAmount
+            discountAmount,
+            promoCode: currentOrder?.promoCode,
+            promoId: currentOrder?.promoId
           });
         }
         

@@ -62,12 +62,25 @@ const BookingDetailPage = () => {
 
   const handleConfirmBooking = async () => {
     try {
+      setLoading(true);
       await bookingService.updateBookingStatus(id, { status: 'confirmed' });
-      setBooking(prev => ({ ...prev, status: 'confirmed' }));
+      
+      // Tải lại thông tin đặt bàn để lấy thông tin bàn đã được gán tự động
+      const response = await bookingService.getBookingById(id);
+      setBooking(response.data.data.booking || response.data.data);
+      
       toast.success('Đã xác nhận đặt bàn thành công');
+      
+      // Hiển thị thông báo nếu bàn đã được gán tự động
+      if (response.data.data.booking?.tableAssigned) {
+        const table = response.data.data.booking.tableAssigned;
+        toast.info(`Hệ thống đã tự động gán bàn: ${table.name} (sức chứa: ${table.capacity} người)`);
+      }
     } catch (error) {
       console.error('Error confirming booking:', error);
       toast.error('Không thể xác nhận đặt bàn. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -197,6 +210,17 @@ const BookingDetailPage = () => {
               {booking.table && (
                 <p>
                   <strong>Bàn:</strong> {booking.table.name || `Bàn #${booking.table.tableNumber}`}
+                  {booking.table.capacity && (
+                    <span className="text-muted ms-2">(Sức chứa: {booking.table.capacity} người)</span>
+                  )}
+                </p>
+              )}
+              {booking.tableAssigned && (
+                <p>
+                  <strong>Bàn đã gán:</strong> {booking.tableAssigned.name}
+                  {booking.tableAssigned.capacity && (
+                    <span className="text-muted ms-2">(Sức chứa: {booking.tableAssigned.capacity} người)</span>
+                  )}
                 </p>
               )}
             </Col>

@@ -95,6 +95,15 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    promoCode: {
+      type: String,
+      default: null
+    },
+    promoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Promotion',
+      default: null
+    },
     taxRate: {
       type: Number,
       default: 0

@@ -1,270 +1,481 @@
-import { useState, useEffect } from 'react';
-import { Table, Form, Button, Badge, InputGroup, Row, Col, Card, Modal, Spinner } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Row, 
+  Col, 
+  Card, 
+  Button, 
+  Table, 
+  Badge, 
+  Form, 
+  InputGroup, 
+  Modal, 
+  Spinner,
+  Tabs,
+  Tab,
+  Alert,
+  Nav
+} from 'react-bootstrap';
 import { 
   FaTable, 
   FaPlus, 
   FaEdit, 
-  FaTrashAlt, 
+  FaTrash, 
   FaSearch, 
   FaFilter, 
-  FaSort,
-  FaCheck,
-  FaBan,
-  FaUsers,
-  FaBroom
+  FaSort, 
+  FaCheck, 
+  FaBan, 
+  FaUsers, 
+  FaBroom,
+  FaThLarge,
+  FaList,
+  FaMapMarkerAlt,
+  FaChair,
+  FaSave,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaMapMarked
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import PageHeader from '../../components/common/PageHeader';
 import tableService from '../../services/tableService';
+import RestaurantFloorPlan from '../../components/admin/RestaurantFloorPlan';
 
 const TableManagementPage = () => {
-  // State management
+  // State for tables
   const [tables, setTables] = useState([]);
   const [filteredTables, setFilteredTables] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [tablesPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
-  const [sortField, setSortField] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [error, setError] = useState(null);
   
-  // Modal states
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('add'); // 'add', 'edit', or 'view'
-  const [currentTable, setCurrentTable] = useState(null);
+  // State for filters
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    location: '',
+    capacity: ''
+  });
   
-  // Form state for add/edit
+  // State for sorting
+  const [sortConfig, setSortConfig] = useState({
+    key: 'name',
+    direction: 'asc'
+  });
+  
+  // State for view mode
+  const [activeTab, setActiveTab] = useState('grid');
+  
+  // State for table modal
+  const [showTableModal, setShowTableModal] = useState(false);
+  const [modalMode, setModalMode] = useState('add'); // 'add', 'edit', 'view'
+  const [selectedTable, setSelectedTable] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     capacity: 2,
-    location: 'main',
     status: 'available',
-    description: ''
+    location: 'main'
   });
+  
+  // State for delete confirmation
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [tableToDelete, setTableToDelete] = useState(null);
+  
+  // State for status update modal
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusUpdateTable, setStatusUpdateTable] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
   
   // Fetch tables on component mount
   useEffect(() => {
     fetchTables();
   }, []);
   
-  // Apply filters when filter states change
+  // Apply filters and sorting when tables or filter criteria change
   useEffect(() => {
-    applyFilters();
-  }, [tables, searchTerm, statusFilter, locationFilter, sortField, sortDirection]);
+    if (tables.length > 0) {
+      applyFiltersAndSort();
+    }
+  }, [tables, filters, sortConfig]);
   
   const fetchTables = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await tableService.getAllTables();
-      setTables(response.data);
-      setFilteredTables(response.data);
-    } catch (error) {
-      console.error('Error fetching tables:', error);
+      const tablesData = response.data?.data?.tables || response.data?.data || response.data || [];
+      setTables(tablesData);
+      setFilteredTables(tablesData);
+    } catch (err) {
+      console.error('Error fetching tables:', err);
+      setError('Không thể tải danh sách bàn. Vui lòng thử lại sau.');
       toast.error('Không thể tải danh sách bàn');
     } finally {
       setLoading(false);
     }
   };
   
-  const applyFilters = () => {
+  const applyFiltersAndSort = () => {
     let result = [...tables];
     
     // Apply search filter
-    if (searchTerm) {
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
       result = result.filter(table => 
-        table.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        table.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        table.name.toLowerCase().includes(searchTerm) ||
+        (table.location && table.location.toLowerCase().includes(searchTerm))
       );
     }
     
     // Apply status filter
-    if (statusFilter) {
-      result = result.filter(table => table.status === statusFilter);
+    if (filters.status) {
+      result = result.filter(table => table.status === filters.status);
     }
     
     // Apply location filter
-    if (locationFilter) {
-      result = result.filter(table => table.location === locationFilter);
+    if (filters.location) {
+      result = result.filter(table => table.location === filters.location);
+    }
+    
+    // Apply capacity filter
+    if (filters.capacity) {
+      const capacity = parseInt(filters.capacity);
+      if (!isNaN(capacity)) {
+        result = result.filter(table => table.capacity >= capacity);
+      }
     }
     
     // Apply sorting
-    result.sort((a, b) => {
-      let fieldA = a[sortField];
-      let fieldB = b[sortField];
-      
-      // Handle numeric fields
-      if (sortField === 'capacity') {
-        fieldA = Number(fieldA);
-        fieldB = Number(fieldB);
-      }
-      
-      if (fieldA < fieldB) return sortDirection === 'asc' ? -1 : 1;
-      if (fieldA > fieldB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
     
     setFilteredTables(result);
   };
   
-  // Pagination
-  const indexOfLastTable = currentPage * tablesPerPage;
-  const indexOfFirstTable = indexOfLastTable - tablesPerPage;
-  const currentTables = filteredTables.slice(indexOfFirstTable, indexOfLastTable);
-  const totalPages = Math.ceil(filteredTables.length / tablesPerPage);
-  
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      location: '',
+      capacity: ''
+    });
+  };
+  
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
     }
+    setSortConfig({ key, direction });
   };
   
-  // Modal handlers
-  const openAddModal = () => {
+  // Table CRUD operations
+  const openAddTableModal = () => {
     setModalMode('add');
     setFormData({
       name: '',
       capacity: 2,
-      location: 'main',
       status: 'available',
-      description: ''
+      location: 'main'
     });
-    setShowModal(true);
+    setShowTableModal(true);
   };
   
-  const openEditModal = (table) => {
+  const openEditTableModal = (table) => {
     setModalMode('edit');
-    setCurrentTable(table);
+    setSelectedTable(table);
     setFormData({
       name: table.name,
       capacity: table.capacity,
-      location: table.location,
       status: table.status,
-      description: table.description || ''
+      location: table.location || 'main'
     });
-    setShowModal(true);
+    setShowTableModal(true);
   };
   
-  const openViewModal = (table) => {
+  const openViewTableModal = (table) => {
     setModalMode('view');
-    setCurrentTable(table);
-    setShowModal(true);
-  };
-  
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
-  
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    setSelectedTable(table);
     setFormData({
-      ...formData,
-      [name]: value
+      name: table.name,
+      capacity: table.capacity,
+      status: table.status,
+      location: table.location || 'main'
     });
+    setShowTableModal(true);
   };
   
-  // CRUD operations
-  const handleSubmit = async (e) => {
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'capacity' ? parseInt(value) : value
+    }));
+  };
+  
+  const handleTableSubmit = async (e) => {
     e.preventDefault();
+    
     try {
       if (modalMode === 'add') {
         await tableService.createTable(formData);
         toast.success('Tạo bàn mới thành công');
       } else if (modalMode === 'edit') {
-        await tableService.updateTable(currentTable._id, formData);
+        await tableService.updateTable(selectedTable._id, formData);
         toast.success('Cập nhật bàn thành công');
       }
       
-      handleCloseModal();
+      setShowTableModal(false);
       fetchTables();
-    } catch (error) {
-      console.error('Error saving table:', error);
-      toast.error(modalMode === 'add' ? 'Không thể tạo bàn mới' : 'Không thể cập nhật bàn');
+    } catch (err) {
+      console.error(`Error ${modalMode === 'add' ? 'creating' : 'updating'} table:`, err);
+      toast.error(
+        err.response?.data?.message || 
+        `Không thể ${modalMode === 'add' ? 'tạo' : 'cập nhật'} bàn. Vui lòng thử lại.`
+      );
     }
   };
   
-  const handleDeleteTable = async (tableId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bàn này không?')) {
-      try {
-        await tableService.deleteTable(tableId);
-        toast.success('Xóa bàn thành công');
-        fetchTables();
-      } catch (error) {
-        console.error('Error deleting table:', error);
-        toast.error('Không thể xóa bàn');
-      }
+  const openDeleteConfirmation = (table) => {
+    setTableToDelete(table);
+    setShowDeleteConfirmation(true);
+  };
+  
+  const handleDeleteTable = async () => {
+    if (!tableToDelete) return;
+    
+    try {
+      await tableService.deleteTable(tableToDelete._id);
+      toast.success('Xóa bàn thành công');
+      setShowDeleteConfirmation(false);
+      fetchTables();
+    } catch (err) {
+      console.error('Error deleting table:', err);
+      toast.error(
+        err.response?.data?.message || 
+        'Không thể xóa bàn. Bàn có thể đang được sử dụng hoặc đã được đặt trước.'
+      );
+    }
+  };
+  
+  // Status update functions
+  const openStatusModal = (table) => {
+    setStatusUpdateTable(table);
+    setNewStatus(table.status);
+    setShowStatusModal(true);
+  };
+  
+  const handleStatusChange = async () => {
+    if (!statusUpdateTable || !newStatus) return;
+    
+    try {
+      await tableService.updateTableStatus(statusUpdateTable._id, newStatus);
+      toast.success('Cập nhật trạng thái bàn thành công');
+      setShowStatusModal(false);
+      fetchTables();
+    } catch (err) {
+      console.error('Error updating table status:', err);
+      toast.error('Không thể cập nhật trạng thái bàn');
+    }
+  };
+
+  // Handle quick status change from floor plan
+  const handleQuickStatusChange = async (tableId, status) => {
+    try {
+      await tableService.updateTableStatus(tableId, status);
+      toast.success('Cập nhật trạng thái bàn thành công');
+      fetchTables();
+    } catch (err) {
+      console.error('Error updating table status:', err);
+      toast.error('Không thể cập nhật trạng thái bàn');
     }
   };
   
   // Helper functions
   const getStatusBadge = (status) => {
-    const statusMap = {
-      available: { bg: 'success', icon: <FaCheck className="me-1" />, text: 'Trống' },
-      occupied: { bg: 'danger', icon: <FaUsers className="me-1" />, text: 'Đang sử dụng' },
-      reserved: { bg: 'warning', icon: <FaUsers className="me-1" />, text: 'Đã đặt trước' },
-      unavailable: { bg: 'secondary', icon: <FaBan className="me-1" />, text: 'Không khả dụng' },
-      needs_cleaning: { bg: 'info', icon: <FaBroom className="me-1" />, text: 'Cần dọn dẹp' }
-    };
-    
-    const { bg, icon, text } = statusMap[status] || statusMap.unavailable;
-    
+    switch (status) {
+      case 'available':
+        return <Badge bg="success"><FaCheck className="me-1" /> Trống</Badge>;
+      case 'occupied':
+        return <Badge bg="danger"><FaUsers className="me-1" /> Đang sử dụng</Badge>;
+      case 'reserved':
+        return <Badge bg="warning" text="dark"><FaUsers className="me-1" /> Đã đặt trước</Badge>;
+      case 'unavailable':
+        return <Badge bg="secondary"><FaBan className="me-1" /> Không khả dụng</Badge>;
+      case 'needs_cleaning':
+        return <Badge bg="info"><FaBroom className="me-1" /> Cần dọn dẹp</Badge>;
+      default:
+        return <Badge bg="secondary">{status}</Badge>;
+    }
+  };
+  
+  const getLocationLabel = (location) => {
+    switch (location) {
+      case 'main':
+        return 'Khu vực chính';
+      case 'outdoor':
+        return 'Ngoài trời';
+      case 'private':
+        return 'Phòng riêng';
+      case 'bar':
+        return 'Quầy bar';
+      default:
+        return location || 'Không xác định';
+    }
+  };
+  
+  // Render functions
+  const renderTableCard = (table) => {
     return (
-      <Badge bg={bg} className="d-inline-flex align-items-center">
-        {icon} {text}
-      </Badge>
+      <Card className="h-100 table-card" key={table._id}>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">{table.name}</h5>
+          {getStatusBadge(table.status)}
+        </Card.Header>
+        <Card.Body>
+          <div className="d-flex flex-column gap-2">
+            <div>
+              <FaChair className="me-2 text-primary" />
+              <strong>Sức chứa:</strong> {table.capacity} người
+            </div>
+            <div>
+              <FaMapMarkerAlt className="me-2 text-primary" />
+              <strong>Vị trí:</strong> {getLocationLabel(table.location)}
+            </div>
+            {table.currentOrderId && (
+              <div className="mt-2">
+                <Badge bg="info" className="w-100 py-1">
+                  <FaInfoCircle className="me-1" /> Đang có đơn hàng
+                </Badge>
+              </div>
+            )}
+          </div>
+        </Card.Body>
+        <Card.Footer>
+          <div className="d-flex justify-content-between">
+            <Button 
+              variant="outline-primary" 
+              size="sm" 
+              onClick={() => openStatusModal(table)}
+            >
+              Đổi trạng thái
+            </Button>
+            <div>
+              <Button 
+                variant="outline-secondary" 
+                size="sm" 
+                className="me-1"
+                onClick={() => openEditTableModal(table)}
+              >
+                <FaEdit />
+              </Button>
+              <Button 
+                variant="outline-danger" 
+                size="sm"
+                onClick={() => openDeleteConfirmation(table)}
+              >
+                <FaTrash />
+              </Button>
+            </div>
+          </div>
+        </Card.Footer>
+      </Card>
     );
   };
   
-  const getLocationText = (location) => {
-    const locationMap = {
-      main: 'Khu vực chính',
-      outdoor: 'Ngoài trời',
-      private: 'Phòng riêng',
-      bar: 'Quầy bar'
-    };
-    
-    return locationMap[location] || location;
+  const renderTableRow = (table) => {
+    return (
+      <tr key={table._id}>
+        <td>{table.name}</td>
+        <td className="text-center">{table.capacity}</td>
+        <td>{getLocationLabel(table.location)}</td>
+        <td>{getStatusBadge(table.status)}</td>
+        <td>
+          <div className="d-flex gap-1 justify-content-end">
+            <Button 
+              variant="outline-secondary" 
+              size="sm"
+              onClick={() => openStatusModal(table)}
+              title="Đổi trạng thái"
+            >
+              Đổi trạng thái
+            </Button>
+            <Button 
+              variant="outline-primary" 
+              size="sm"
+              onClick={() => openEditTableModal(table)}
+              title="Chỉnh sửa"
+            >
+              <FaEdit />
+            </Button>
+            <Button 
+              variant="outline-danger" 
+              size="sm"
+              onClick={() => openDeleteConfirmation(table)}
+              title="Xóa"
+            >
+              <FaTrash />
+            </Button>
+          </div>
+        </td>
+      </tr>
+    );
   };
   
   return (
-    <div className="table-management-page">
-      <PageHeader 
-        title="Quản lý bàn" 
-        icon={<FaTable className="me-2" />}
-        description="Quản lý tất cả các bàn trong nhà hàng"
-      />
+    <Container fluid className="py-4">
+      <Row className="mb-4">
+        <Col>
+          <h2 className="mb-1">
+            <FaTable className="me-2" />
+            Quản lý bàn
+          </h2>
+          <p className="text-muted">Quản lý tất cả các bàn trong nhà hàng</p>
+        </Col>
+      </Row>
       
       <Card className="shadow-sm mb-4">
         <Card.Body>
-          <Row className="mb-3 align-items-center">
-            <Col md={4}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaSearch />
-                </InputGroup.Text>
-                <Form.Control
-                  placeholder="Tìm kiếm bàn..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </InputGroup>
+          <Row className="mb-3 align-items-end">
+            <Col md={6} lg={3}>
+              <Form.Group>
+                <Form.Label>Tìm kiếm</Form.Label>
+                <InputGroup>
+                  <InputGroup.Text>
+                    <FaSearch />
+                  </InputGroup.Text>
+                  <Form.Control
+                    name="search"
+                    value={filters.search}
+                    onChange={handleFilterChange}
+                    placeholder="Tìm theo tên bàn..."
+                  />
+                </InputGroup>
+              </Form.Group>
             </Col>
-            <Col md={3}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaFilter />
-                </InputGroup.Text>
+            <Col md={6} lg={2}>
+              <Form.Group>
+                <Form.Label>Trạng thái</Form.Label>
                 <Form.Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="available">Trống</option>
@@ -273,156 +484,152 @@ const TableManagementPage = () => {
                   <option value="unavailable">Không khả dụng</option>
                   <option value="needs_cleaning">Cần dọn dẹp</option>
                 </Form.Select>
-              </InputGroup>
+              </Form.Group>
             </Col>
-            <Col md={3}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaFilter />
-                </InputGroup.Text>
+            <Col md={6} lg={2}>
+              <Form.Group>
+                <Form.Label>Vị trí</Form.Label>
                 <Form.Select
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
+                  name="location"
+                  value={filters.location}
+                  onChange={handleFilterChange}
                 >
-                  <option value="">Tất cả khu vực</option>
+                  <option value="">Tất cả vị trí</option>
                   <option value="main">Khu vực chính</option>
                   <option value="outdoor">Ngoài trời</option>
                   <option value="private">Phòng riêng</option>
                   <option value="bar">Quầy bar</option>
                 </Form.Select>
-              </InputGroup>
+              </Form.Group>
             </Col>
-            <Col md={2} className="text-end">
-              <Button variant="primary" onClick={openAddModal}>
-                <FaPlus className="me-1" /> Thêm bàn
+            <Col md={6} lg={2}>
+              <Form.Group>
+                <Form.Label>Sức chứa tối thiểu</Form.Label>
+                <Form.Control
+                  type="number"
+                  name="capacity"
+                  value={filters.capacity}
+                  onChange={handleFilterChange}
+                  placeholder="Số người"
+                  min="1"
+                />
+              </Form.Group>
+            </Col>
+            <Col md={12} lg={3} className="d-flex gap-2 mt-md-3 mt-lg-0">
+              <Button 
+                variant="outline-secondary" 
+                className="flex-grow-1"
+                onClick={clearFilters}
+              >
+                <FaFilter className="me-1" /> Xóa bộ lọc
+              </Button>
+              <Button 
+                variant="primary" 
+                className="flex-grow-1"
+                onClick={openAddTableModal}
+              >
+                <FaPlus className="me-1" /> Thêm bàn mới
               </Button>
             </Col>
           </Row>
           
-          {/* Tables Table */}
-          <div className="table-responsive">
-            <Table striped hover className="align-middle">
-              <thead>
-                <tr>
-                  <th onClick={() => handleSort('name')} className="user-select-none">
-                    Tên bàn {sortField === 'name' && (
-                      <FaSort className={`ms-1 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </th>
-                  <th onClick={() => handleSort('capacity')} className="user-select-none">
-                    Sức chứa {sortField === 'capacity' && (
-                      <FaSort className={`ms-1 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </th>
-                  <th onClick={() => handleSort('location')} className="user-select-none">
-                    Khu vực {sortField === 'location' && (
-                      <FaSort className={`ms-1 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </th>
-                  <th onClick={() => handleSort('status')} className="user-select-none">
-                    Trạng thái {sortField === 'status' && (
-                      <FaSort className={`ms-1 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="5" className="text-center py-4">
-                      <Spinner animation="border" variant="primary" />
-                      <p className="mt-2 text-muted">Đang tải danh sách bàn...</p>
-                    </td>
-                  </tr>
-                ) : currentTables.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="text-center py-4">
-                      Không tìm thấy bàn nào
-                    </td>
-                  </tr>
-                ) : (
-                  currentTables.map(table => (
-                    <tr key={table._id}>
-                      <td>{table.name}</td>
-                      <td>{table.capacity} người</td>
-                      <td>{getLocationText(table.location)}</td>
-                      <td>{getStatusBadge(table.status)}</td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Button 
-                            variant="outline-info" 
-                            size="sm"
-                            onClick={() => openViewModal(table)}
-                          >
-                            <FaSearch />
-                          </Button>
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm"
-                            onClick={() => openEditModal(table)}
-                          >
-                            <FaEdit />
-                          </Button>
-                          <Button 
-                            variant="outline-danger" 
-                            size="sm"
-                            onClick={() => handleDeleteTable(table._id)}
-                          >
-                            <FaTrashAlt />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
-          </div>
+          <Nav variant="tabs" className="mb-3">
+            <Nav.Item>
+              <Nav.Link 
+                active={activeTab === 'grid'} 
+                onClick={() => setActiveTab('grid')}
+              >
+                <FaThLarge className="me-1" /> Lưới
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link 
+                active={activeTab === 'list'} 
+                onClick={() => setActiveTab('list')}
+              >
+                <FaList className="me-1" /> Danh sách
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link 
+                active={activeTab === 'floorplan'} 
+                onClick={() => setActiveTab('floorplan')}
+              >
+                <FaMapMarked className="me-1" /> Sơ đồ bàn
+              </Nav.Link>
+            </Nav.Item>
+          </Nav>
           
-          {/* Pagination */}
-          {filteredTables.length > 0 && (
-            <div className="d-flex justify-content-between align-items-center mt-3">
-              <div>
-                Hiển thị {indexOfFirstTable + 1} - {Math.min(indexOfLastTable, filteredTables.length)} / {filteredTables.length} bàn
-              </div>
-              <ul className="pagination mb-0">
-                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                  <button 
-                    className="page-link" 
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    &laquo;
-                  </button>
-                </li>
-                {[...Array(totalPages)].map((_, index) => (
-                  <li key={index} className={`page-item ${currentPage === index + 1 ? 'active' : ''}`}>
-                    <button 
-                      className="page-link" 
-                      onClick={() => handlePageChange(index + 1)}
-                    >
-                      {index + 1}
-                    </button>
-                  </li>
-                ))}
-                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                  <button 
-                    className="page-link" 
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    &raquo;
-                  </button>
-                </li>
-              </ul>
+          {loading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+              <p className="mt-3">Đang tải danh sách bàn...</p>
             </div>
+          ) : error ? (
+            <Alert variant="danger">
+              <FaExclamationTriangle className="me-2" />
+              {error}
+            </Alert>
+          ) : filteredTables.length === 0 ? (
+            <Alert variant="info">
+              <FaInfoCircle className="me-2" />
+              Không tìm thấy bàn nào. Hãy thử thay đổi bộ lọc hoặc thêm bàn mới.
+            </Alert>
+          ) : activeTab === 'grid' ? (
+            <Row xs={1} md={2} lg={3} xl={4} className="g-4">
+              {filteredTables.map(table => (
+                <Col key={table._id}>
+                  {renderTableCard(table)}
+                </Col>
+              ))}
+            </Row>
+          ) : activeTab === 'list' ? (
+            <div className="table-responsive">
+              <Table hover>
+                <thead>
+                  <tr>
+                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                      Tên bàn {sortConfig.key === 'name' && (
+                        <FaSort className={`ms-1 ${sortConfig.direction === 'asc' ? 'text-primary' : 'text-danger'}`} />
+                      )}
+                    </th>
+                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('capacity')} className="text-center">
+                      Sức chứa {sortConfig.key === 'capacity' && (
+                        <FaSort className={`ms-1 ${sortConfig.direction === 'asc' ? 'text-primary' : 'text-danger'}`} />
+                      )}
+                    </th>
+                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('location')}>
+                      Vị trí {sortConfig.key === 'location' && (
+                        <FaSort className={`ms-1 ${sortConfig.direction === 'asc' ? 'text-primary' : 'text-danger'}`} />
+                      )}
+                    </th>
+                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>
+                      Trạng thái {sortConfig.key === 'status' && (
+                        <FaSort className={`ms-1 ${sortConfig.direction === 'asc' ? 'text-primary' : 'text-danger'}`} />
+                      )}
+                    </th>
+                    <th className="text-end">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTables.map(table => renderTableRow(table))}
+                </tbody>
+              </Table>
+            </div>
+          ) : (
+            <RestaurantFloorPlan 
+              tables={filteredTables}
+              loading={loading}
+              onStatusChange={handleQuickStatusChange}
+              onEditTable={openEditTableModal}
+              onDeleteTable={openDeleteConfirmation}
+            />
           )}
         </Card.Body>
       </Card>
       
-      {/* Add/Edit/View Table Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
+      {/* Table Modal (Add/Edit/View) */}
+      <Modal show={showTableModal} onHide={() => setShowTableModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>
             {modalMode === 'add' ? 'Thêm bàn mới' : 
@@ -431,26 +638,26 @@ const TableManagementPage = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={handleSubmit}>
+          <Form onSubmit={handleTableSubmit}>
             <Form.Group className="mb-3">
               <Form.Label>Tên bàn</Form.Label>
               <Form.Control
                 type="text"
                 name="name"
                 value={formData.name}
-                onChange={handleInputChange}
+                onChange={handleFormChange}
                 disabled={modalMode === 'view'}
                 required
               />
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Sức chứa (người)</Form.Label>
+              <Form.Label>Sức chứa (số người)</Form.Label>
               <Form.Control
                 type="number"
                 name="capacity"
                 value={formData.capacity}
-                onChange={handleInputChange}
+                onChange={handleFormChange}
                 disabled={modalMode === 'view'}
                 min="1"
                 required
@@ -458,13 +665,12 @@ const TableManagementPage = () => {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Khu vực</Form.Label>
+              <Form.Label>Vị trí</Form.Label>
               <Form.Select
                 name="location"
                 value={formData.location}
-                onChange={handleInputChange}
+                onChange={handleFormChange}
                 disabled={modalMode === 'view'}
-                required
               >
                 <option value="main">Khu vực chính</option>
                 <option value="outdoor">Ngoài trời</option>
@@ -478,9 +684,8 @@ const TableManagementPage = () => {
               <Form.Select
                 name="status"
                 value={formData.status}
-                onChange={handleInputChange}
+                onChange={handleFormChange}
                 disabled={modalMode === 'view'}
-                required
               >
                 <option value="available">Trống</option>
                 <option value="occupied">Đang sử dụng</option>
@@ -490,40 +695,101 @@ const TableManagementPage = () => {
               </Form.Select>
             </Form.Group>
             
-            <Form.Group className="mb-3">
-              <Form.Label>Mô tả</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                disabled={modalMode === 'view'}
-              />
-            </Form.Group>
-            
             {modalMode !== 'view' && (
               <div className="d-flex justify-content-end">
-                <Button variant="secondary" className="me-2" onClick={handleCloseModal}>
+                <Button variant="secondary" className="me-2" onClick={() => setShowTableModal(false)}>
                   Hủy
                 </Button>
                 <Button variant="primary" type="submit">
-                  {modalMode === 'add' ? 'Thêm bàn' : 'Lưu thay đổi'}
+                  <FaSave className="me-1" />
+                  {modalMode === 'add' ? 'Tạo bàn' : 'Lưu thay đổi'}
+                </Button>
+              </div>
+            )}
+            
+            {modalMode === 'view' && (
+              <div className="d-flex justify-content-end">
+                <Button variant="secondary" onClick={() => setShowTableModal(false)}>
+                  Đóng
                 </Button>
               </div>
             )}
           </Form>
-          
-          {modalMode === 'view' && (
-            <div className="d-flex justify-content-end mt-3">
-              <Button variant="secondary" onClick={handleCloseModal}>
-                Đóng
-              </Button>
-            </div>
-          )}
         </Modal.Body>
       </Modal>
-    </div>
+      
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteConfirmation} onHide={() => setShowDeleteConfirmation(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Xác nhận xóa bàn</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="d-flex align-items-center mb-3">
+            <FaExclamationTriangle className="text-danger me-3" size={24} />
+            <div>
+              <p className="mb-1">Bạn có chắc chắn muốn xóa bàn <strong>{tableToDelete?.name}</strong>?</p>
+              <p className="mb-0 text-danger">Hành động này không thể hoàn tác.</p>
+            </div>
+          </div>
+          
+          <Alert variant="warning">
+            <strong>Lưu ý:</strong> Bàn đang được sử dụng hoặc đã được đặt trước sẽ không thể xóa.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteConfirmation(false)}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleDeleteTable}>
+            <FaTrash className="me-1" /> Xác nhận xóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      
+      {/* Status Update Modal */}
+      <Modal show={showStatusModal} onHide={() => setShowStatusModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Cập nhật trạng thái bàn</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Bàn: <strong>{statusUpdateTable?.name}</strong></p>
+          <p>Trạng thái hiện tại: {statusUpdateTable && getStatusBadge(statusUpdateTable.status)}</p>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Trạng thái mới</Form.Label>
+            <Form.Select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+            >
+              <option value="available">Trống</option>
+              <option value="occupied">Đang sử dụng</option>
+              <option value="reserved">Đã đặt trước</option>
+              <option value="unavailable">Không khả dụng</option>
+              <option value="needs_cleaning">Cần dọn dẹp</option>
+            </Form.Select>
+          </Form.Group>
+          
+          {newStatus === 'available' && statusUpdateTable?.status === 'occupied' && (
+            <Alert variant="info">
+              <FaInfoCircle className="me-1" />
+              Đổi trạng thái thành "Trống" sẽ đóng đơn hàng hiện tại nếu có.
+            </Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
+            Hủy
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleStatusChange}
+            disabled={statusUpdateTable?.status === newStatus}
+          >
+            <FaCheck className="me-1" /> Cập nhật
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
   );
 };
 

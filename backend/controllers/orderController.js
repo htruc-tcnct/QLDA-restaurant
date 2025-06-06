@@ -492,7 +492,7 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 // @route   PUT /api/v1/orders/:id/apply-discount
 // @access  Private (waiter, manager)
 exports.applyDiscount = catchAsync(async (req, res, next) => {
-  const { discountAmount, discountPercentage } = req.body;
+  const { discountAmount, discountPercentage, promoCode, promoId } = req.body;
   
   if (discountAmount === undefined && discountPercentage === undefined) {
     return next(new AppError('Vui lòng cung cấp số tiền hoặc phần trăm giảm giá', 400));
@@ -523,8 +523,8 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
     (discountPercentage && discountPercentage > 15) || 
     (discountAmount && discountAmount > order.subTotal * 0.15);
   
-  if (isLargeDiscount && req.user.role !== 'manager') {
-    return next(new AppError('Giảm giá lớn chỉ có thể được áp dụng bởi quản lý', 403));
+  if (isLargeDiscount && req.user.role !== 'manager' && !promoCode) {
+    return next(new AppError('Giảm giá lớn chỉ có thể được áp dụng bởi quản lý hoặc mã khuyến mãi', 403));
   }
   
   // Apply the discount
@@ -534,6 +534,15 @@ exports.applyDiscount = catchAsync(async (req, res, next) => {
   } else {
     order.discountAmount = discountAmount;
     order.discountPercentage = (discountAmount / order.subTotal) * 100;
+  }
+  
+  // Lưu thông tin mã giảm giá nếu có
+  if (promoCode) {
+    order.promoCode = promoCode;
+    
+    if (promoId) {
+      order.promoId = promoId;
+    }
   }
   
   // Recalculate total

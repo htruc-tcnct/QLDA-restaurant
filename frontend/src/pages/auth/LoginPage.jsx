@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaUser, FaLock, FaExclamationTriangle } from 'react-icons/fa';
 import useAuthStore from '../../store/authStore';
 import restaurantLogo from '../../assets/restaurant-logo.svg'; // Updated to SVG format
 import api from '../../services/api';
+import { toast } from 'react-toastify';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading, error, clearError } = useAuthStore();
   
   const [formData, setFormData] = useState({
@@ -75,6 +77,41 @@ const LoginPage = () => {
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  // Redirect user based on role
+  const redirectBasedOnRole = (user) => {
+    // If there's a specific page the user was trying to access, go there
+    const from = location.state?.from?.pathname;
+    if (from) {
+      navigate(from);
+      return;
+    }
+
+    // Otherwise, redirect based on role
+    switch (user.role) {
+      case 'admin':
+      case 'manager':
+        navigate('/admin');
+        break;
+      case 'waiter':
+        // Waiters primarily use POS but can also access orders
+        toast.info('Bạn có thể truy cập màn hình POS và quản lý đơn hàng mới');
+        navigate('/waiter/pos');
+        break;
+      case 'staff':
+        // Staff can access POS and orders
+        toast.info('Bạn có thể truy cập màn hình POS và quản lý đơn hàng');
+        navigate('/waiter/pos');
+        break;
+      case 'chef':
+        navigate('/admin/orders');
+        break;
+      case 'customer':
+      default:
+        navigate('/');
+        break;
+    }
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,7 +123,9 @@ const LoginPage = () => {
     console.log('Submitting login form with data:', formData);
     const success = await login(formData);
     if (success) {
-      navigate('/');
+      // Get the current user from the auth store
+      const user = useAuthStore.getState().user;
+      redirectBasedOnRole(user);
     }
   };
   

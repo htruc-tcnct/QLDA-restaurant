@@ -15,7 +15,7 @@ router.get('/my-bookings', bookingController.getMyBookings);
 router.put('/:id/cancel-by-customer', bookingController.cancelBookingByCustomer);
 
 // Staff/Admin routes
-router.use(authController.restrictTo('waiter', 'manager', 'admin'));
+router.use(authController.restrictTo('waiter', 'staff', 'manager', 'admin'));
 
 router.route('/')
   .get(bookingController.getAllBookings);

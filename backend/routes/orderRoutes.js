@@ -21,13 +21,13 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
 router.use(protect);
 
 // Apply authorization to all routes
-router.use(authorize('waiter', 'manager', 'chef'));
+router.use(authorize('waiter', 'staff', 'manager', 'chef'));
 
 // Order routes
 router
   .route('/')
   .get(getAllOrders)
-  .post(authorize('waiter', 'manager'), createOrder);
+  .post(authorize('waiter', 'staff', 'manager'), createOrder);
 
 router
   .route('/:id')
@@ -47,15 +47,15 @@ router
 // Order items routes
 router
   .route('/:id/add-item')
-  .put(authorize('waiter', 'manager'), addItemToOrder);
+  .put(authorize('waiter', 'staff', 'manager'), addItemToOrder);
 
 router
   .route('/:id/update-item/:orderItemId')
-  .put(authorize('waiter', 'manager'), updateOrderItem);
+  .put(authorize('waiter', 'staff', 'manager'), updateOrderItem);
 
 router
   .route('/:id/remove-item/:orderItemId')
-  .delete(authorize('waiter', 'manager'), removeOrderItem);
+  .delete(authorize('waiter', 'staff', 'manager'), removeOrderItem);
 
 // Update item status route (accessible by chef)
 router
@@ -69,10 +69,10 @@ router
 
 router
   .route('/:id/apply-discount')
-  .put(authorize('waiter', 'manager'), applyDiscount);
+  .put(authorize('waiter', 'staff', 'manager'), applyDiscount);
 
 router
   .route('/:id/checkout')
-  .post(authorize('waiter', 'manager'), checkoutOrder);
+  .post(authorize('waiter', 'staff', 'manager'), checkoutOrder);
 
 module.exports = router; 

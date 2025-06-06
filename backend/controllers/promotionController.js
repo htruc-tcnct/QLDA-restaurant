@@ -63,42 +63,39 @@ exports.getAllPromotions = catchAsync(async (req, res, next) => {
 // @access  Private (manager)
 exports.createPromotion = catchAsync(async (req, res, next) => {
   const {
-    name,
-    description,
-    type,
-    value,
     code,
+    description,
+    discountType,
+    discountValue,
+    minOrderValue,
+    maxDiscountAmount,
     startDate,
     endDate,
-    minSpend,
-    maxDiscountAmount,
     usageLimit,
-    isActive
+    applicableFor
   } = req.body;
-  
-  // Check if code already exists (if provided)
-  if (code) {
-    const existingPromotion = await Promotion.findOne({ code: code.toUpperCase() });
-    if (existingPromotion) {
-      return next(new AppError('Mã khuyến mãi đã tồn tại', 400));
-    }
+
+  // Kiểm tra mã khuyến mãi đã tồn tại chưa
+  const existingPromo = await Promotion.findOne({ code: code.toUpperCase() });
+  if (existingPromo) {
+    return next(new AppError('Mã khuyến mãi đã tồn tại', 400));
   }
-  
-  // Create promotion
+
+  // Tạo mã khuyến mãi mới
   const promotion = await Promotion.create({
-    name,
-    description,
-    type,
-    value,
     code,
+    description,
+    discountType,
+    discountValue,
+    minOrderValue: minOrderValue || 0,
+    maxDiscountAmount,
     startDate,
     endDate,
-    minSpend,
-    maxDiscountAmount,
     usageLimit,
-    isActive
+    applicableFor: applicableFor || 'all',
+    createdBy: req.user._id
   });
-  
+
   res.status(201).json({
     status: 'success',
     data: {
@@ -114,7 +111,7 @@ exports.getPromotion = catchAsync(async (req, res, next) => {
   const promotion = await Promotion.findById(req.params.id);
   
   if (!promotion) {
-    return next(new AppError('Không tìm thấy khuyến mãi với ID này', 404));
+    return next(new AppError('Không tìm thấy mã khuyến mãi với ID này', 404));
   }
   
   res.status(200).json({
@@ -130,57 +127,56 @@ exports.getPromotion = catchAsync(async (req, res, next) => {
 // @access  Private (manager)
 exports.updatePromotion = catchAsync(async (req, res, next) => {
   const {
-    name,
-    description,
-    type,
-    value,
     code,
+    description,
+    discountType,
+    discountValue,
+    minOrderValue,
+    maxDiscountAmount,
     startDate,
     endDate,
-    minSpend,
-    maxDiscountAmount,
+    isActive,
     usageLimit,
-    isActive
+    applicableFor
   } = req.body;
-  
-  // Check if code already exists (if provided) and it's not the same promotion
+
+  // Nếu thay đổi code, kiểm tra code mới đã tồn tại chưa
   if (code) {
-    const existingPromotion = await Promotion.findOne({
+    const existingPromo = await Promotion.findOne({ 
       code: code.toUpperCase(),
       _id: { $ne: req.params.id }
     });
     
-    if (existingPromotion) {
+    if (existingPromo) {
       return next(new AppError('Mã khuyến mãi đã tồn tại', 400));
     }
   }
-  
-  // Find and update promotion
+
   const promotion = await Promotion.findByIdAndUpdate(
     req.params.id,
     {
-      name,
-      description,
-      type,
-      value,
       code,
+      description,
+      discountType,
+      discountValue,
+      minOrderValue,
+      maxDiscountAmount,
       startDate,
       endDate,
-      minSpend,
-      maxDiscountAmount,
+      isActive,
       usageLimit,
-      isActive
+      applicableFor
     },
     {
       new: true,
       runValidators: true
     }
   );
-  
+
   if (!promotion) {
-    return next(new AppError('Không tìm thấy khuyến mãi với ID này', 404));
+    return next(new AppError('Không tìm thấy mã khuyến mãi với ID này', 404));
   }
-  
+
   res.status(200).json({
     status: 'success',
     data: {
@@ -196,7 +192,7 @@ exports.deletePromotion = catchAsync(async (req, res, next) => {
   const promotion = await Promotion.findByIdAndDelete(req.params.id);
   
   if (!promotion) {
-    return next(new AppError('Không tìm thấy khuyến mãi với ID này', 404));
+    return next(new AppError('Không tìm thấy mã khuyến mãi với ID này', 404));
   }
   
   res.status(204).json({
@@ -272,6 +268,65 @@ exports.applyPromoCode = catchAsync(async (req, res, next) => {
       discountAmount,
       originalTotal: orderTotal,
       newTotal
+    }
+  });
+});
+
+// Kiểm tra mã khuyến mãi có hợp lệ không
+exports.validatePromotion = catchAsync(async (req, res, next) => {
+  const { code, orderTotal } = req.body;
+
+  if (!code) {
+    return next(new AppError('Vui lòng cung cấp mã khuyến mãi', 400));
+  }
+
+  const promotion = await Promotion.findOne({ code: code.toUpperCase() });
+
+  if (!promotion) {
+    return next(new AppError('Mã khuyến mãi không tồn tại', 404));
+  }
+
+  // Kiểm tra mã có hợp lệ không
+  if (!promotion.isValid()) {
+    return next(new AppError('Mã khuyến mãi đã hết hạn hoặc không còn hiệu lực', 400));
+  }
+
+  // Kiểm tra giá trị đơn hàng tối thiểu
+  if (orderTotal && orderTotal < promotion.minOrderValue) {
+    return next(new AppError(`Đơn hàng cần tối thiểu ${promotion.minOrderValue.toLocaleString('vi-VN')}đ để áp dụng mã này`, 400));
+  }
+
+  // Tính toán giá trị giảm giá
+  const discountAmount = promotion.calculateDiscount(orderTotal || 0);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      promotion,
+      discountAmount,
+      discountedTotal: orderTotal ? (orderTotal - discountAmount) : null
+    }
+  });
+});
+
+// Áp dụng mã khuyến mãi (tăng số lần sử dụng)
+exports.applyPromotion = catchAsync(async (req, res, next) => {
+  const { code } = req.body;
+
+  const promotion = await Promotion.findOne({ code: code.toUpperCase() });
+
+  if (!promotion) {
+    return next(new AppError('Mã khuyến mãi không tồn tại', 404));
+  }
+
+  // Tăng số lần sử dụng
+  promotion.usageCount += 1;
+  await promotion.save();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      promotion
     }
   });
 }); 

@@ -179,6 +179,21 @@ const MyBookingsPage = () => {
                         <strong>Số khách:</strong>
                         <span className="ms-2">{booking.numberOfGuests} người</span>
                       </div>
+                      
+                      {booking.tableAssigned && (
+                        <div className="d-flex align-items-center mt-2">
+                          <FaCheckCircle className="text-success me-2" />
+                          <strong>Bàn đã gán:</strong>
+                          <span className="ms-2">
+                            {booking.tableAssigned.name}
+                            {booking.tableAssigned.capacity && (
+                              <small className="text-muted ms-1">
+                                (Sức chứa: {booking.tableAssigned.capacity} người)
+                              </small>
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {booking.notes && (

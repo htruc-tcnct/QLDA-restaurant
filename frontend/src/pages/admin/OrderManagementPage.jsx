@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Form, Button, Badge, Row, Col, InputGroup, Modal } from 'react-bootstrap';
+import { Card, Table, Form, Button, Badge, Row, Col, InputGroup, Modal, Alert } from 'react-bootstrap';
 import { 
   FaShoppingCart, 
   FaSearch, 
@@ -14,7 +14,8 @@ import {
   FaTruck,
   FaCreditCard,
   FaPlus,
-  FaTrash
+  FaTrash,
+  FaBell
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -59,18 +60,57 @@ const OrderManagementPage = () => {
   const [availableTables, setAvailableTables] = useState([]);
   const [customers, setCustomers] = useState([]);
   
+  // Count of new orders
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  
   // Lấy thông tin người dùng từ store
   const { user } = useAuthStore();
+  const isWaiter = user?.role === 'waiter' || user?.role === 'staff';
+  
+  // Set default filter for waiters to show only new orders
+  useEffect(() => {
+    if (isWaiter) {
+      setStatusFilter('pending_confirmation');
+    }
+  }, [isWaiter]);
   
   // Fetch orders on component mount
   useEffect(() => {
     fetchOrders();
-  }, []);
+    
+    // Set up a timer to refresh orders periodically for waiters
+    let intervalId;
+    if (isWaiter) {
+      intervalId = setInterval(() => {
+        fetchOrders();
+      }, 60000); // Refresh every minute
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isWaiter]);
   
   // Apply filters when filter states change
   useEffect(() => {
     applyFilters();
   }, [orders, searchTerm, statusFilter, dateRangeFilter, sortField, sortDirection]);
+  
+  // Update new orders count
+  useEffect(() => {
+    if (isWaiter) {
+      const newOrders = orders.filter(order => order.orderStatus === 'pending_confirmation');
+      setNewOrdersCount(newOrders.length);
+      
+      // Show notification for new orders
+      if (newOrders.length > 0) {
+        // Check if this is not the initial load
+        if (!loading && orders.length > 0) {
+          toast.info(`Có ${newOrders.length} đơn hàng mới cần xử lý`);
+        }
+      }
+    }
+  }, [orders, isWaiter, loading]);
   
   const fetchOrders = async () => {
     setLoading(true);
@@ -913,98 +953,132 @@ const OrderManagementPage = () => {
   };
   
   return (
-    <div className="order-management p-4">
-      <Card className="shadow-sm">
+    <div className="order-management-page p-3">
+      <Card>
         <Card.Header className="bg-white py-3">
           <div className="d-flex justify-content-between align-items-center">
-            <h1 className="h3 mb-0 text-gray-800">
+            <h4 className="mb-0">
               <FaShoppingCart className="me-2 text-primary" />
-              Quản lý đơn hàng
-            </h1>
-            <Button
-              variant="primary"
-              onClick={handleOpenCreateOrderModal}
-              className="d-flex align-items-center"
-            >
-              <FaPlus className="me-2" /> Tạo đơn hàng mới
-            </Button>
+              {isWaiter ? 'Đơn hàng mới' : 'Quản lý đơn hàng'}
+              {isWaiter && newOrdersCount > 0 && (
+                <Badge bg="danger" className="ms-2">{newOrdersCount} mới</Badge>
+              )}
+            </h4>
+            {!isWaiter && (
+              <Button 
+                variant="primary"
+                onClick={handleOpenCreateOrderModal}
+              >
+                <FaPlus className="me-2" /> Tạo đơn hàng mới
+              </Button>
+            )}
           </div>
         </Card.Header>
         <Card.Body>
-          {/* Filters */}
-          <Row className="mb-4 g-3">
-            <Col md={3}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaSearch />
-                </InputGroup.Text>
-                <Form.Control
-                  placeholder="Tìm theo mã đơn hoặc tên khách..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </InputGroup>
-            </Col>
-            <Col md={2}>
-              <InputGroup>
-                <InputGroup.Text>
-                  <FaFilter />
-                </InputGroup.Text>
-                <Form.Select 
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="pending_confirmation">Chờ xác nhận</option>
-                  <option value="confirmed_by_customer">Khách xác nhận</option>
-                  <option value="sent_to_kitchen">Gửi bếp</option>
-                  <option value="partially_ready">Một phần sẵn sàng</option>
-                  <option value="all_ready_to_serve">Sẵn sàng phục vụ</option>
-                  <option value="partially_served">Đã phục vụ một phần</option>
-                  <option value="fully_served">Đã phục vụ</option>
-                  <option value="payment_pending">Chờ thanh toán</option>
-                  <option value="completed">Hoàn thành</option>
-                  <option value="cancelled">Đã hủy</option>
-                </Form.Select>
-              </InputGroup>
-            </Col>
-            <Col md={2}>
-              <Form.Control
-                type="date"
-                placeholder="Từ ngày"
-                value={dateRangeFilter.startDate}
-                onChange={(e) => setDateRangeFilter({...dateRangeFilter, startDate: e.target.value})}
-              />
-            </Col>
-            <Col md={2}>
-              <Form.Control
-                type="date"
-                placeholder="Đến ngày"
-                value={dateRangeFilter.endDate}
-                onChange={(e) => setDateRangeFilter({...dateRangeFilter, endDate: e.target.value})}
-              />
-            </Col>
-            <Col md={2}>
-              <InputGroup>
-                <InputGroup.Text>
-                  Hiển thị
-                </InputGroup.Text>
-                <Form.Select 
-                  value={ordersPerPage}
-                  onChange={(e) => setOrdersPerPage(Number(e.target.value))}
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </Form.Select>
-              </InputGroup>
-            </Col>
-            <Col md={1}>
-              <Button variant="outline-secondary" onClick={fetchOrders}>
-                <FaFilter /> Lọc
-              </Button>
-            </Col>
+          {isWaiter && (
+            <Alert variant="info" className="d-flex align-items-center">
+              <FaBell className="me-2" />
+              <div>
+                <strong>Lưu ý:</strong> Trang này hiển thị các đơn hàng mới từ khách hàng cần được xử lý. 
+                Bạn có thể xác nhận, gửi đến bếp hoặc xem chi tiết đơn hàng.
+              </div>
+            </Alert>
+          )}
+          
+          {/* Filters - Simplified for waiters */}
+          <Row className="mb-4 align-items-end">
+            {!isWaiter ? (
+              // Full filters for admin/manager
+              <>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Tìm kiếm</Form.Label>
+                    <InputGroup>
+                      <InputGroup.Text>
+                        <FaSearch />
+                      </InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo mã đơn, khách hàng..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </InputGroup>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Trạng thái</Form.Label>
+                    <Form.Select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="pending_confirmation">Chờ xác nhận</option>
+                      <option value="confirmed_by_customer">Khách xác nhận</option>
+                      <option value="sent_to_kitchen">Gửi bếp</option>
+                      <option value="partially_ready">Một phần sẵn sàng</option>
+                      <option value="all_ready_to_serve">Sẵn sàng phục vụ</option>
+                      <option value="partially_served">Đã phục vụ một phần</option>
+                      <option value="fully_served">Đã phục vụ</option>
+                      <option value="payment_pending">Chờ thanh toán</option>
+                      <option value="completed">Hoàn thành</option>
+                      <option value="cancelled">Đã hủy</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={2}>
+                  <Form.Group>
+                    <Form.Label>Từ ngày</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={dateRangeFilter.startDate}
+                      onChange={(e) => setDateRangeFilter({...dateRangeFilter, startDate: e.target.value})}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={2}>
+                  <Form.Group>
+                    <Form.Label>Đến ngày</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={dateRangeFilter.endDate}
+                      onChange={(e) => setDateRangeFilter({...dateRangeFilter, endDate: e.target.value})}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={1}>
+                  <Button variant="outline-secondary" onClick={fetchOrders}>
+                    <FaFilter /> Lọc
+                  </Button>
+                </Col>
+              </>
+            ) : (
+              // Simplified filters for waiters
+              <>
+                <Col md={5}>
+                  <Form.Group>
+                    <Form.Label>Tìm kiếm đơn hàng</Form.Label>
+                    <InputGroup>
+                      <InputGroup.Text>
+                        <FaSearch />
+                      </InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Tìm theo mã đơn, khách hàng..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </InputGroup>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Button variant="primary" className="w-100" onClick={fetchOrders}>
+                    <FaFilter className="me-2" /> Làm mới danh sách
+                  </Button>
+                </Col>
+              </>
+            )}
           </Row>
           
           {/* Orders Table */}
@@ -1054,12 +1128,12 @@ const OrderManagementPage = () => {
                 ) : filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="text-center py-4">
-                      Không tìm thấy đơn hàng nào
+                      {isWaiter ? 'Không có đơn hàng mới nào cần xử lý' : 'Không tìm thấy đơn hàng nào'}
                     </td>
                   </tr>
                 ) : (
                   currentOrders.map(order => (
-                    <tr key={order._id}>
+                    <tr key={order._id} className={order.orderStatus === 'pending_confirmation' ? 'table-warning' : ''}>
                       <td><strong>{order.orderNumber}</strong></td>
                       <td>{format(new Date(order.createdAt), 'dd/MM/yyyy HH:mm')}</td>
                       <td>
@@ -1163,14 +1237,16 @@ const OrderManagementPage = () => {
                             <FaPrint />
                           </Button>
                           
-                          <Button 
-                            variant="outline-danger" 
-                            size="sm"
-                            onClick={() => handleDeleteOrder(order._id)}
-                            title="Xóa đơn hàng"
-                          >
-                            <FaTrash />
-                          </Button>
+                          {!isWaiter && (
+                            <Button 
+                              variant="outline-danger" 
+                              size="sm"
+                              onClick={() => handleDeleteOrder(order._id)}
+                              title="Xóa đơn hàng"
+                            >
+                              <FaTrash />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
